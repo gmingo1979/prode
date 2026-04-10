@@ -81,6 +81,11 @@
                   <i class="bi bi-{{ 'pause' if t.activo else 'play' }}"></i>
                 </button>
               </form>
+              <form method="POST" action="{{ url_for('prode_bp.admin_torneo_copiar', id=t.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Copiar torneo">
+                  <i class="bi bi-copy"></i>
+                </button>
+              </form>
               <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Eliminar"
                 onclick="confirmarEliminar({{ t.id }}, '{{ t.nombre | replace("'", "\\'") }}', {{ ns.count }}, {{ t.fases | length }})">
                 <i class="bi bi-trash3"></i>

@@ -96,7 +96,7 @@
           {# Jugador #}
           <td class="ps-3">
             <div class="d-flex align-items-center gap-2">
-              <img src="{{ url_for('static', filename=insc.usuario.profile_pic) }}"
+              <img src="{{ insc.usuario.avatar_url }}"
                 onerror="this.src='{{ url_for('static', filename='img/default.svg') }}'"
                 style="width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0;">
               <div>

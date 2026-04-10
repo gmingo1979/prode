@@ -59,7 +59,7 @@
           {% for u in rol.usuarios %}
           <div class="d-flex align-items-center gap-2 px-3 py-2"
                style="border-bottom: 1px solid #f0f2f5; font-size:0.82rem;">
-            <img src="{{ url_for('static', filename=u.profile_pic) }}"
+            <img src="{{ u.avatar_url }}"
                  onerror="this.src='{{ url_for('static', filename='img/default.jpg') }}'"
                  style="width:26px; height:26px; border-radius:50%; object-fit:cover;">
             <span>{{ u.nombre_completo }}</span>

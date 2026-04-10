@@ -35,7 +35,7 @@
             <td class="ps-3">
               <div class="d-flex align-items-center gap-2">
                 <img
-                  src="{{ url_for('static', filename=u.profile_pic) }}"
+                  src="{{ u.avatar_url }}"
                   onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default.jpg') }}'"
                   alt="{{ u.nombre_completo }}"
                   style="width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0;"

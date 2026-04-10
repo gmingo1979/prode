@@ -4,6 +4,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 
 from app.db import db
+from app.utils.permisos import requiere_funcion
 from app.forms.usuario_form import UsuarioForm
 from app.forms.perfil_form import PerfilForm
 from app.models.rol import Rol
@@ -70,6 +71,7 @@ def eliminar_foto_propia():
 # ── Listado ────────────────────────────────────────────────────────────────
 @usuarios_bp.route('/')
 @login_required
+@requiere_funcion()
 def listado():
     usuarios = Usuario.query.order_by(Usuario.apellido, Usuario.nombre).all()
     return render_template('usuarios/listado.html', titulo='Usuarios', usuarios=usuarios)
@@ -78,6 +80,7 @@ def listado():
 # ── Nuevo ──────────────────────────────────────────────────────────────────
 @usuarios_bp.route('/nuevo', methods=['GET', 'POST'])
 @login_required
+@requiere_funcion()
 def nuevo():
     form = UsuarioForm()
     form.roles.choices = [(r.id, r.nombre) for r in Rol.query.order_by(Rol.nombre).all()]
@@ -132,6 +135,7 @@ def nuevo():
 # ── Editar ─────────────────────────────────────────────────────────────────
 @usuarios_bp.route('/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
+@requiere_funcion()
 def editar(id):
     usuario = Usuario.query.get_or_404(id)
     form    = UsuarioForm(obj=usuario)
@@ -183,6 +187,7 @@ def editar(id):
 # ── Eliminar foto ──────────────────────────────────────────────────────────
 @usuarios_bp.route('/<int:id>/eliminar-foto', methods=['POST'])
 @login_required
+@requiere_funcion()
 def eliminar_foto_perfil(id):
     usuario = Usuario.query.get_or_404(id)
     eliminar_foto(usuario.id)
@@ -193,6 +198,7 @@ def eliminar_foto_perfil(id):
 # ── Cambiar estado ─────────────────────────────────────────────────────────
 @usuarios_bp.route('/<int:id>/estado', methods=['POST'])
 @login_required
+@requiere_funcion()
 def cambiar_estado(id):
     usuario      = Usuario.query.get_or_404(id)
     nuevo_estado = request.form.get('estado')
@@ -217,6 +223,7 @@ def cambiar_estado(id):
 # ── Eliminar usuario ───────────────────────────────────────────────────────
 @usuarios_bp.route('/<int:id>/eliminar', methods=['POST'])
 @login_required
+@requiere_funcion()
 def eliminar(id):
     if id == current_user.id:
         flash('No podés eliminar tu propia cuenta.', 'danger')

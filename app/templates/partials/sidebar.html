@@ -16,7 +16,7 @@ Mejoras respecto a la versión anterior:
 
   {# ── Panel de usuario ─────────────────────────────────────── #}
   <div class="sidebar-user">
-    <img src="{{ url_for('static', filename=current_user.profile_pic) }}"
+    <img src="{{ current_user.avatar_url }}"
       onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default.svg') }}'"
       alt="Foto de {{ current_user.nombre_completo }}" class="sidebar-user-avatar">
     <div class="sidebar-user-info">

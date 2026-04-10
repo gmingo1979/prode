@@ -76,11 +76,12 @@ def obtener_ranking_torneo(torneo_id: int) -> list:
 
     ranking = [dict(row) for row in rows]
 
-    # Reemplazar foto_path con profile_pic del modelo
+    # Reemplazar foto_path con avatar_url del modelo
     from app.models.usuario import Usuario
+    from flask import url_for
     for r in ranking:
         u = Usuario.query.get(r['usuario_id'])
-        r['foto_path'] = u.profile_pic if u else 'img/default.jpg'
+        r['foto_path'] = u.avatar_url if u else url_for('static', filename='img/default.svg')
 
     ranking.sort(key=lambda r: (
         -(r['puntos']   or 0),

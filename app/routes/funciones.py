@@ -15,6 +15,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 
 from app.db import db
+from app.utils.permisos import requiere_funcion
 from app.forms.funcion_form import FuncionForm
 from app.models.funcion import Funcion
 
@@ -23,6 +24,7 @@ funciones_bp = Blueprint('funciones_bp', __name__, url_prefix='/funciones')
 
 @funciones_bp.route('/')
 @login_required
+@requiere_funcion()
 def listado():
     """Lista todas las funciones agrupadas por categoría."""
     funciones = Funcion.query.order_by(Funcion.categoria, Funcion.nombre).all()
@@ -37,6 +39,7 @@ def listado():
 
 @funciones_bp.route('/nueva', methods=['GET', 'POST'])
 @login_required
+@requiere_funcion()
 def nueva():
     """Formulario para crear una nueva función."""
     form = FuncionForm()
@@ -74,6 +77,7 @@ def nueva():
 
 @funciones_bp.route('/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
+@requiere_funcion()
 def editar(id):
     """Formulario para editar una función existente."""
     funcion = Funcion.query.get_or_404(id)
@@ -110,6 +114,7 @@ def editar(id):
 
 @funciones_bp.route('/<int:id>/eliminar', methods=['POST'])
 @login_required
+@requiere_funcion()
 def eliminar(id):
     """
     Elimina una función. Si está asignada a algún rol, no se puede eliminar

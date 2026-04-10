@@ -114,7 +114,7 @@
 
           <div class="mb-3" style="position:relative; display:inline-block;">
             <img id="fotoPreview"
-              src="{{ url_for('static', filename=current_user.profile_pic) }}"
+              src="{{ current_user.avatar_url }}"
               onerror="this.src='{{ url_for('static', filename='img/default.svg') }}'"
               alt="Foto de perfil"
               style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:3px solid #e8ecf0; display:block; margin:0 auto;">

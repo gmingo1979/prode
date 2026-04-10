@@ -45,6 +45,7 @@ def callback():
     nombre    = userinfo.get('given_name') or userinfo.get('name', '').split()[0]
     apellido  = userinfo.get('family_name') or (userinfo.get('name', '').split()[-1]
                  if ' ' in userinfo.get('name', '') else '')
+    foto_url  = userinfo.get('picture') or None
 
     if not google_id or not email:
         flash('Google no devolvió los datos necesarios. Intentá de nuevo.', 'danger')
@@ -58,6 +59,10 @@ def callback():
         if not usuario.puede_ingresar():
             flash('Tu cuenta está bloqueada. Contactá al administrador.', 'warning')
             return redirect(url_for('auth_bp.login'))
+        # Actualizar foto si cambió en Google
+        if foto_url and usuario.foto_url != foto_url:
+            usuario.foto_url = foto_url
+            db.session.commit()
         login_user(usuario, remember=False)
         session['auth_provider'] = 'google'
         return redirect(url_for('main_bp.index'))
@@ -74,8 +79,9 @@ def callback():
 
     # ── Caso 3: vincular si mismo email + Google ──────────────
     if existente and existente.auth_origen == 'Google':
-        # Actualizar google_id si por alguna razón faltaba
         existente.google_id = google_id
+        if foto_url and existente.foto_url != foto_url:
+            existente.foto_url = foto_url
         db.session.commit()
         login_user(existente, remember=False)
         session['auth_provider'] = 'google'
@@ -99,6 +105,7 @@ def callback():
         estado      = 'Activo',
         auth_origen = 'Google',
         google_id   = google_id,
+        foto_url    = foto_url,
     )
 
     rol_pronosticador = Rol.query.filter_by(nombre='Pronosticador').first()

@@ -33,6 +33,8 @@ class Usuario(db.Model, UserMixin):
     google_id   = db.Column(db.String(120), unique=True, nullable=True)
 
     fecha_alta = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    # URL externa de foto de perfil (ej: Google profile picture)
+    foto_url   = db.Column(db.String(500), nullable=True)
 
     # ── Relaciones ───────────────────────────────────────────
     roles = db.relationship(
@@ -58,6 +60,7 @@ class Usuario(db.Model, UserMixin):
 
     @property
     def profile_pic(self) -> str:
+        """Ruta relativa dentro de static/. Usar avatar_url en templates."""
         import os
         ruta = f"uploads/profile_pics/user_{self.id}.jpg"
         path_fisico = os.path.join(
@@ -66,6 +69,19 @@ class Usuario(db.Model, UserMixin):
         if os.path.exists(os.path.normpath(path_fisico)):
             return ruta
         return 'img/default.svg'
+
+    @property
+    def avatar_url(self) -> str:
+        """URL completa para mostrar el avatar. Prioridad: foto local → foto_url (Google) → default."""
+        import os
+        from flask import url_for, current_app
+        ruta = f"uploads/profile_pics/user_{self.id}.jpg"
+        path_fisico = os.path.join(current_app.static_folder, ruta)
+        if os.path.exists(path_fisico):
+            return url_for('static', filename=ruta)
+        if self.foto_url:
+            return self.foto_url
+        return url_for('static', filename='img/default.svg')
 
     def __repr__(self) -> str:
         return f"<Usuario {self.username}>"

@@ -15,6 +15,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 
 from app.db import db
+from app.utils.permisos import requiere_funcion
 from app.forms.rol_form import RolForm
 from app.models.funcion import Funcion
 from app.models.rol import Rol
@@ -25,6 +26,7 @@ roles_bp = Blueprint('roles_bp', __name__, url_prefix='/roles')
 
 @roles_bp.route('/')
 @login_required
+@requiere_funcion()
 def listado():
     """Lista todos los roles con sus funciones y usuarios asignados."""
     roles = Rol.query.order_by(Rol.nombre).all()
@@ -49,6 +51,7 @@ def listado():
 
 @roles_bp.route('/nuevo', methods=['GET', 'POST'])
 @login_required
+@requiere_funcion()
 def nuevo():
     """Formulario para crear un nuevo rol."""
     form = RolForm()
@@ -92,6 +95,7 @@ def nuevo():
 
 @roles_bp.route('/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
+@requiere_funcion()
 def editar(id):
     """Formulario para editar un rol y sus funciones asignadas."""
     rol  = Rol.query.get_or_404(id)
@@ -133,6 +137,7 @@ def editar(id):
 
 @roles_bp.route('/<int:id>/eliminar', methods=['POST'])
 @login_required
+@requiere_funcion()
 def eliminar(id):
     """
     Elimina un rol. No se puede eliminar si tiene usuarios asignados

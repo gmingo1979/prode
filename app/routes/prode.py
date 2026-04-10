@@ -10,7 +10,7 @@
 #   GET  /prode/<torneo_id>/ranking           → ranking del torneo
 #
 # RUTAS ADMIN (requieren función RBAC):
-#   Torneos   : listar / nuevo / editar / activar
+#   Torneos   : listar / nuevo / editar / activar / copiar
 #   Fases     : nuevo / editar / eliminar
 #   Equipos   : nuevo / editar / eliminar
 #   Partidos  : nuevo / editar / cerrar
@@ -611,6 +611,7 @@ def dashboard(torneo_id):
                            torneo=torneo,
                            ahora=ahora,
                            proximo=proximo,
+                           mis_pronosticos=mis_pronosticos,
                            mi_posicion=mi_posicion,
                            ranking_total=len(ranking),
                            ultimos_resultados=ultimos_resultados,
@@ -905,6 +906,84 @@ def admin_torneo_eliminar(id):
     except Exception as e:
         db.session.rollback()
         flash('No se pudo eliminar el torneo.', 'danger')
+    return redirect(url_for('prode_bp.admin_torneos'))
+
+
+@prode_bp.route('/admin/torneos/<int:id>/copiar', methods=['POST'])
+@login_required
+@requiere_funcion()
+def admin_torneo_copiar(id):
+    """
+    Clona un torneo completo: fases, equipos, partidos y config de puntaje.
+    No copia inscripciones ni pronósticos.
+    El clon queda inactivo y con inscripción cerrada para revisión antes de publicar.
+    """
+    original = ProdeTorneo.query.get_or_404(id)
+    try:
+        nuevo = ProdeTorneo(
+            nombre              = f'Copia de {original.nombre}',
+            descripcion         = original.descripcion,
+            fecha_inicio        = original.fecha_inicio,
+            fecha_fin           = original.fecha_fin,
+            activo              = False,
+            inscripcion_abierta = False,
+            precio_inscripcion  = original.precio_inscripcion,
+        )
+        db.session.add(nuevo)
+        db.session.flush()  # obtener nuevo.id
+
+        # Clonar equipos — guardar mapa old_id → new_id
+        mapa_equipos = {}
+        for eq in original.equipos:
+            nuevo_eq = ProdeEquipo(
+                torneo_id  = nuevo.id,
+                nombre     = eq.nombre,
+                grupo      = eq.grupo,
+                escudo_url = eq.escudo_url,
+                codigo_iso = eq.codigo_iso,
+            )
+            db.session.add(nuevo_eq)
+            db.session.flush()
+            mapa_equipos[eq.id] = nuevo_eq.id
+
+        # Clonar fases y sus partidos
+        for fase in original.fases:
+            nueva_fase = ProdeFase(
+                torneo_id = nuevo.id,
+                nombre    = fase.nombre,
+                orden     = fase.orden,
+            )
+            db.session.add(nueva_fase)
+            db.session.flush()
+
+            for partido in fase.partidos:
+                nuevo_partido = ProdePartido(
+                    fase_id             = nueva_fase.id,
+                    equipo_local_id     = mapa_equipos[partido.equipo_local_id],
+                    equipo_visitante_id = mapa_equipos[partido.equipo_visitante_id],
+                    fecha_hora          = partido.fecha_hora,
+                    estado              = 'pendiente',
+                )
+                db.session.add(nuevo_partido)
+
+        # Clonar config de puntaje
+        if original.config:
+            nueva_config = ProdeConfigPuntaje(
+                torneo_id         = nuevo.id,
+                resultado_exacto  = original.config.resultado_exacto,
+                resultado_parcial = original.config.resultado_parcial,
+                resultado_errado  = original.config.resultado_errado,
+            )
+            db.session.add(nueva_config)
+
+        db.session.commit()
+        flash(f'Torneo copiado como <strong>{nuevo.nombre}</strong>. '
+              'Revisá las fechas y activalo cuando esté listo.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error al copiar torneo {id}: {e}')
+        flash('No se pudo copiar el torneo.', 'danger')
+
     return redirect(url_for('prode_bp.admin_torneos'))
 
 

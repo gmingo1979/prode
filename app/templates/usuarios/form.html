@@ -125,7 +125,7 @@
           {# Preview circular #}
           <div class="mb-3" style="position:relative; display:inline-block;">
             <img id="fotoPreview"
-              src="{% if usuario %}{{ url_for('static', filename=usuario.profile_pic) }}{% else %}{{ url_for('static', filename='img/default.svg') }}{% endif %}"
+              src="{% if usuario %}{{ usuario.avatar_url }}{% else %}{{ url_for('static', filename='img/default.svg') }}{% endif %}"
               onerror="this.src='{{ url_for('static', filename='img/default.svg') }}'" alt="Foto de perfil" style="
                 width: 110px;
                 height: 110px;

@@ -63,7 +63,7 @@
 
           <td>
             <div class="d-flex align-items-center gap-2">
-              <img src="{{ url_for('static', filename=r.foto_path) }}"
+              <img src="{{ r.foto_path }}"
                 style="width:32px; height:32px; border-radius:50%; object-fit:cover; background:#e8ecf0;" alt="">
               <div>
                 <div>{{ r.usuario }}{% if es_yo %} <span style="font-size:0.72rem; color:#3b82f6;">(vos)</span>{% endif
