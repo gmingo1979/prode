@@ -14,3 +14,4 @@ python-dotenv
 gunicorn
 WTForms
 mercadopago
+cffi<2.0
