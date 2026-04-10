@@ -2,7 +2,7 @@ services:
   - type: web
     name: prode
     runtime: python
-    buildCommand: pip install -r requirements.txt && mkdir -p /opt/render/project/data && flask db upgrade
+    buildCommand: pip install --prefer-binary -r requirements.txt && mkdir -p /opt/render/project/data && flask db upgrade
     startCommand: gunicorn "run:flask_app" --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     envVars:
       - key: FLASK_ENV
