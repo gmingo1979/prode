@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% from 'prode/macros/equipo.html' import bandera %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Mi historial</h1>
+    <p class="page-subtitle">{{ torneo.nombre }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('prode_bp.dashboard', torneo_id=torneo.id) }}"
+       class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-speedometer2 me-1"></i>Dashboard
+    </a>
+    <a href="{{ url_for('prode_bp.index') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+</div>
+
+{# ── Resumen estadístico ── #}
+<div class="row g-3 mb-4">
+
+  {# Precisión #}
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-3">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:#aaa;">
+          Precisión
+        </div>
+        <div style="font-size:2.2rem; font-weight:800; color:#003263; line-height:1; margin-top:8px;">
+          {{ pct_acierto }}<span style="font-size:1rem; font-weight:400; color:#aaa;">%</span>
+        </div>
+        <div style="font-size:0.72rem; color:#888; margin-top:4px;">
+          {{ exactos + parciales }} de {{ total }} partidos
+        </div>
+        {% if total > 0 %}
+        <div class="progress mt-2" style="height:4px; border-radius:99px;">
+          <div class="progress-bar" style="width:{{ pct_acierto }}%;
+               background:{{ '#16a34a' if pct_acierto >= 60 else '#f59e0b' if pct_acierto >= 40 else '#dc2626' }};
+               border-radius:99px;"></div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Desglose #}
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-3">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:#aaa;">
+          Desglose
+        </div>
+        <div class="d-flex flex-column gap-1 mt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size:0.78rem;">🎯 Exactos</span>
+            <span style="font-weight:700; color:#16a34a;">{{ exactos }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size:0.78rem;">✅ Parciales</span>
+            <span style="font-weight:700; color:#f59e0b;">{{ parciales }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size:0.78rem;">❌ Errados</span>
+            <span style="font-weight:700; color:#dc2626;">{{ errados }}</span>
+          </div>
+          {% if sin_pron %}
+          <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size:0.78rem; color:#bbb;">— Sin pron.</span>
+            <span style="color:#bbb;">{{ sin_pron }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Racha actual #}
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-3">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:#aaa;">
+          Racha actual
+        </div>
+        {% if racha_actual > 0 %}
+        <div class="d-flex align-items-center gap-2 mt-2">
+          <span style="font-size:1.8rem; line-height:1;">
+            {{ '🔥' if racha_tipo == 'buena' else '❄️' }}
+          </span>
+          <div>
+            <div style="font-size:1.8rem; font-weight:800; line-height:1;
+                        color:{{ '#16a34a' if racha_tipo == 'buena' else '#dc2626' }};">
+              {{ racha_actual }}
+            </div>
+            <div style="font-size:0.7rem; color:#888;">
+              {{ 'acertados seguidos' if racha_tipo == 'buena' else 'fallados seguidos' }}
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div style="font-size:1.5rem; color:#ccc; margin-top:8px;">—</div>
+        <div style="font-size:0.72rem; color:#bbb;">Sin datos</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Rachas máximas #}
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-3">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:#aaa;">
+          Récords
+        </div>
+        <div class="d-flex flex-column gap-2 mt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size:0.78rem;">🔥 Racha ganadora</span>
+            <span style="font-weight:800; font-size:1.1rem; color:#16a34a;">{{ racha_max_buena }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size:0.78rem;">❄️ Racha perdedora</span>
+            <span style="font-weight:800; font-size:1.1rem; color:#dc2626;">{{ racha_max_mala }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center"
+               style="border-top:1px solid #f1f5f9; padding-top:6px; margin-top:2px;">
+            <span style="font-size:0.78rem;">Puntos totales</span>
+            <span style="font-weight:800; font-size:1.1rem; color:#003263;">{{ puntos_tot }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ── Tabs por fase ── #}
+{% if por_fase %}
+<div class="mb-3" style="overflow-x:auto; white-space:nowrap; padding-bottom:4px;">
+  <div class="d-inline-flex gap-1">
+    <button type="button" class="btn btn-sm btn-primary-app tab-hist-btn"
+            data-fase="__todos__" onclick="filtrarFase('__todos__', this)">
+      Todos <span class="badge rounded-pill ms-1"
+                  style="background:rgba(255,255,255,0.3); font-size:0.62rem;">{{ total }}</span>
+    </button>
+    {% for fase_nombre in por_fase.keys() %}
+    <button type="button" class="btn btn-sm btn-outline-secondary tab-hist-btn"
+            data-fase="{{ fase_nombre }}"
+            onclick="filtrarFase('{{ fase_nombre }}', this)"
+            style="white-space:nowrap;">
+      {{ fase_nombre }}
+      <span class="badge rounded-pill ms-1"
+            style="background:#e2e8f0; color:#555; font-size:0.62rem;">
+        {{ por_fase[fase_nombre] | length }}
+      </span>
+    </button>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── Tabla historial ── #}
+{% if historial %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0" style="font-size:0.82rem;" id="tablaHistorial">
+      <thead>
+        <tr style="background:#f8fafc; font-size:0.68rem; text-transform:uppercase;
+                   letter-spacing:0.05em; color:#999;">
+          <th class="ps-3 py-2">Partido</th>
+          <th class="text-center py-2 d-none d-md-table-cell">Fase</th>
+          <th class="text-center py-2">Resultado</th>
+          <th class="text-center py-2">Tu pronóstico</th>
+          <th class="text-center py-2">Puntos</th>
+          <th class="text-end py-2 pe-3 d-none d-sm-table-cell">Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for h in historial %}
+      {% set p = h.partido %}
+      {% set pron = h.pronostico %}
+      <tr class="fila-hist" data-fase="{{ p.fase.nombre }}"
+          style="{% if h.resultado == 'exacto' %}border-left:3px solid #16a34a;
+                 {% elif h.resultado == 'parcial' %}border-left:3px solid #f59e0b;
+                 {% elif h.resultado == 'errado' %}border-left:3px solid #ef4444;
+                 {% else %}border-left:3px solid #e2e8f0;{% endif %}">
+
+        <td class="ps-3">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            {% if p.equipo_local.escudo_url %}
+              <img src="{{ url_for('static', filename=p.equipo_local.escudo_url) }}"
+                   style="width:20px; height:20px; object-fit:contain;" alt="">
+            {% else %}{{ bandera(p.equipo_local) }}{% endif %}
+            <span style="font-weight:500;">{{ p.equipo_local.nombre }}</span>
+            <span style="color:#ccc; font-size:0.75rem;">vs</span>
+            {% if p.equipo_visitante.escudo_url %}
+              <img src="{{ url_for('static', filename=p.equipo_visitante.escudo_url) }}"
+                   style="width:20px; height:20px; object-fit:contain;" alt="">
+            {% else %}{{ bandera(p.equipo_visitante) }}{% endif %}
+            <span style="font-weight:500;">{{ p.equipo_visitante.nombre }}</span>
+          </div>
+        </td>
+
+        <td class="text-center d-none d-md-table-cell text-muted" style="font-size:0.75rem;">
+          {{ p.fase.nombre }}
+        </td>
+
+        <td class="text-center">
+          <span style="font-weight:700; color:#003263;">{{ p.resultado_str }}</span>
+        </td>
+
+        <td class="text-center">
+          {% if pron %}
+            <span style="color:#555;">{{ pron.goles_local }}–{{ pron.goles_visitante }}</span>
+          {% else %}
+            <span class="text-muted" style="font-size:0.75rem;">Sin pronóstico</span>
+          {% endif %}
+        </td>
+
+        <td class="text-center">
+          {% if h.resultado == 'exacto' %}
+            <span class="badge" style="background:#dcfce7; color:#16a34a; font-size:0.72rem;">
+              +{{ pron.puntos }} 🎯
+            </span>
+          {% elif h.resultado == 'parcial' %}
+            <span class="badge" style="background:#fef9c3; color:#854d0e; font-size:0.72rem;">
+              +{{ pron.puntos }} ✅
+            </span>
+          {% elif h.resultado == 'errado' %}
+            <span class="badge" style="background:#fee2e2; color:#991b1b; font-size:0.72rem;">
+              0 ❌
+            </span>
+          {% else %}
+            <span class="badge" style="background:#f1f5f9; color:#bbb; font-size:0.72rem;">—</span>
+          {% endif %}
+        </td>
+
+        <td class="text-end pe-3 d-none d-sm-table-cell text-muted" style="font-size:0.75rem;">
+          {{ p.fecha_hora.strftime('%d/%m') }}
+        </td>
+
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-clock-history" style="font-size:2.5rem; opacity:0.3;"></i>
+    <p class="mt-3 mb-0">Todavía no hay partidos cerrados para mostrar.</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filtrarFase(fase, btn) {
+  // Activar tab
+  document.querySelectorAll('.tab-hist-btn').forEach(b => {
+    b.classList.remove('btn-primary-app');
+    b.classList.add('btn-outline-secondary');
+  });
+  btn.classList.add('btn-primary-app');
+  btn.classList.remove('btn-outline-secondary');
+
+  // Filtrar filas
+  document.querySelectorAll('.fila-hist').forEach(row => {
+    if (fase === '__todos__' || row.dataset.fase === fase) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+</script>
+{% endblock %}

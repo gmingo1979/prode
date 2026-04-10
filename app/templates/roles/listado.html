@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Roles y permisos</h1>
+    <p class="page-subtitle">{{ roles|length }} rol{{ 'es' if roles|length != 1 }} configurado{{ 's' if roles|length != 1 }}.</p>
+  </div>
+  <a href="{{ url_for('roles_bp.nuevo') }}" class="btn btn-sm btn-primary-app">
+    <i class="bi bi-plus-lg me-1"></i>Nuevo rol
+  </a>
+</div>
+
+{% if roles %}
+<div class="row g-3">
+  {% for rol in roles %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100">
+
+      {# Encabezado del rol #}
+      <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-start justify-content-between">
+        <div>
+          <div style="font-weight:600; font-size:0.9rem; color:#1a1a2e;">
+            <i class="bi bi-shield-lock me-2" style="color:var(--color-primary);"></i>
+            {{ rol.nombre }}
+          </div>
+          {% if rol.descripcion %}
+            <div style="font-size:0.75rem; color:#888; margin-top:0.2rem;">
+              {{ rol.descripcion }}
+            </div>
+          {% endif %}
+        </div>
+        <div class="d-flex gap-1">
+          <a href="{{ url_for('roles_bp.editar', id=rol.id) }}"
+             class="btn btn-sm btn-outline-secondary py-0 px-2" title="Editar">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="POST" action="{{ url_for('roles_bp.eliminar', id=rol.id) }}"
+                class="d-inline"
+                onsubmit="return confirm('¿Eliminar el rol \'{{ rol.nombre }}\'?')">
+            <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Eliminar"
+                    {% if rol.usuarios %}disabled title="Tiene usuarios asignados"{% endif %}>
+              <i class="bi bi-trash3"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card-body">
+
+        {# Usuarios con este rol #}
+        <div class="mb-3">
+          <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase;
+                      letter-spacing:0.07em; color:#aaa; margin-bottom:0.4rem;">
+            <i class="bi bi-people me-1"></i>Usuarios ({{ rol.usuarios|length }})
+          </div>
+          {% if rol.usuarios %}
+            <div class="d-flex flex-wrap gap-1">
+              {% for u in rol.usuarios[:5] %}
+                <div style="display:flex; align-items:center; gap:0.35rem;
+                            font-size:0.75rem; color:#555;">
+                  <img src="{{ url_for('static', filename=u.profile_pic) }}"
+                       onerror="this.src='{{ url_for('static', filename='img/default.jpg') }}'"
+                       style="width:20px; height:20px; border-radius:50%; object-fit:cover;">
+                  {{ u.nombre_completo }}
+                </div>
+              {% endfor %}
+              {% if rol.usuarios|length > 5 %}
+                <span style="font-size:0.75rem; color:#aaa;">
+                  +{{ rol.usuarios|length - 5 }} más
+                </span>
+              {% endif %}
+            </div>
+          {% else %}
+            <span style="font-size:0.78rem; color:#ccc;">Sin usuarios asignados</span>
+          {% endif %}
+        </div>
+
+        {# Funciones asignadas agrupadas por categoría #}
+        <div>
+          <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase;
+                      letter-spacing:0.07em; color:#aaa; margin-bottom:0.4rem;">
+            <i class="bi bi-toggles me-1"></i>Funciones ({{ rol.funciones|length }})
+          </div>
+          {% if rol.funciones %}
+            {% for cat, fns in funciones_por_rol[rol.id].items() %}
+              <div style="font-size:0.7rem; color:#aaa; margin-top:0.5rem; margin-bottom:0.2rem;
+                          font-weight:600; text-transform:uppercase;">
+                {{ cat }}
+              </div>
+              {% for f in fns %}
+                <div style="font-size:0.78rem; color:#555; padding:0.1rem 0; display:flex; align-items:center; gap:0.35rem;">
+                  <i class="{{ f.icono or 'bi bi-dot' }}" style="font-size:0.7rem; color:#aaa;"></i>
+                  {{ f.nombre }}
+                </div>
+              {% endfor %}
+            {% endfor %}
+          {% else %}
+            <span style="font-size:0.78rem; color:#ccc;">Sin funciones asignadas</span>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-shield-lock" style="font-size:2.5rem; opacity:0.3;"></i>
+    <p class="mt-3 mb-0">No hay roles configurados todavía.</p>
+    <a href="{{ url_for('roles_bp.nuevo') }}" class="btn btn-sm btn-primary-app mt-3">
+      Crear primer rol
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

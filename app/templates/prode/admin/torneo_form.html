@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ titulo }}</h1>
+  </div>
+  <a href="{{ url_for('prode_bp.admin_torneos') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Volver
+  </a>
+</div>
+
+{# ── Datos del torneo ── #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent py-3" style="font-weight:600; font-size:0.85rem;">
+    <i class="bi bi-trophy me-2 text-primary"></i>Datos del torneo
+  </div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+
+        <div class="col-12 col-md-6">
+          <label class="form-label form-label-sm">Nombre <span class="text-danger">*</span></label>
+          <input type="text" name="nombre" class="form-control form-control-sm" value="{{ torneo.nombre if torneo }}"
+            required>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label form-label-sm">Descripción</label>
+          <input type="text" name="descripcion" class="form-control form-control-sm"
+            value="{{ torneo.descripcion if torneo }}">
+        </div>
+
+        <div class="col-6 col-md-3">
+          <label class="form-label form-label-sm">Fecha inicio <span class="text-danger">*</span></label>
+          <input type="date" name="fecha_inicio" class="form-control form-control-sm"
+            value="{{ torneo.fecha_inicio.isoformat() if torneo and torneo.fecha_inicio }}" required>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <label class="form-label form-label-sm">Fecha fin <span class="text-danger">*</span></label>
+          <input type="date" name="fecha_fin" class="form-control form-control-sm"
+            value="{{ torneo.fecha_fin.isoformat() if torneo and torneo.fecha_fin }}" required>
+        </div>
+
+        <div class="col-6 col-md-2">
+          <label class="form-label form-label-sm">Pts exacto</label>
+          <input type="number" name="pts_exacto" class="form-control form-control-sm" min="0"
+            value="{{ torneo.config.resultado_exacto if torneo and torneo.config else 3 }}">
+        </div>
+
+        <div class="col-6 col-md-2">
+          <label class="form-label form-label-sm">Pts parcial</label>
+          <input type="number" name="pts_parcial" class="form-control form-control-sm" min="0"
+            value="{{ torneo.config.resultado_parcial if torneo and torneo.config else 1 }}">
+        </div>
+
+        <div class="col-6 col-md-2">
+          <label class="form-label form-label-sm">Pts errado</label>
+          <input type="number" name="pts_errado" class="form-control form-control-sm" min="0"
+            value="{{ torneo.config.resultado_errado if torneo and torneo.config else 0 }}">
+        </div>
+
+        <div class="col-12 d-flex align-items-center gap-3 pt-1">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="inscripcion_abierta" value="1" id="chkInsc"
+              {{ 'checked' if not torneo or torneo.inscripcion_abierta }}>
+            <label class="form-check-label" for="chkInsc" style="font-size:0.85rem;">
+              Inscripción abierta
+            </label>
+          </div>
+        </div>
+
+        <div class="col-12 text-end">
+          <button type="submit" class="btn btn-sm btn-primary-app">
+            <i class="bi bi-floppy me-1"></i>Guardar torneo
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if torneo %}
+
+{# ── Fases ── #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+    <span style="font-weight:600; font-size:0.85rem;">
+      <i class="bi bi-diagram-3 me-2 text-primary"></i>Fases
+    </span>
+    <a href="{{ url_for('prode_bp.admin_fase_nueva', torneo_id=torneo.id) }}" class="btn btn-xs btn-outline-primary"
+      style="font-size:0.78rem; padding:2px 10px;">
+      <i class="bi bi-plus me-1"></i>Nueva fase
+    </a>
+  </div>
+  <div class="card-body p-0">
+    {% if torneo.fases %}
+    <table class="table table-sm align-middle mb-0" style="font-size:0.83rem;">
+      <thead>
+        <tr style="background:#f8fafc; font-size:0.7rem; text-transform:uppercase; color:#888;">
+          <th class="ps-3 py-2">Nombre</th>
+          <th class="text-center">Orden</th>
+          <th class="text-center">Partidos</th>
+          <th class="text-end pe-3">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fase in torneo.fases %}
+        <tr>
+          <td class="ps-3">{{ fase.nombre }}</td>
+          <td class="text-center text-muted">{{ fase.orden }}</td>
+          <td class="text-center">{{ fase.partidos | length }}</td>
+          <td class="text-end pe-3">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{{ url_for('prode_bp.admin_fase_editar', id=fase.id) }}" class="btn btn-xs btn-outline-secondary"
+                style="font-size:0.75rem; padding:2px 8px;">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{{ url_for('prode_bp.admin_partido_nuevo', fase_id=fase.id) }}"
+                class="btn btn-xs btn-outline-primary" style="font-size:0.75rem; padding:2px 8px;"
+                title="Nuevo partido en esta fase">
+                <i class="bi bi-plus"></i> Partido
+              </a>
+              <form method="POST" action="{{ url_for('prode_bp.admin_fase_eliminar', id=fase.id) }}" class="d-inline"
+                onsubmit="return confirm('¿Eliminar fase {{ fase.nombre }}?')">
+                <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Eliminar" style="font-size:0.75rem; padding:2px 8px;">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {# Partidos de esta fase — inline expandidos #}
+        {% for partido in fase.partidos %}
+        <tr style="background:#fafbfc;">
+          <td class="ps-5 text-muted" colspan="2" style="font-size:0.78rem;">
+            <i class="bi bi-dot me-1"></i>
+            {{ partido.equipo_local.nombre }} vs {{ partido.equipo_visitante.nombre }}
+            <span class="ms-2">{{ partido.fecha_hora.strftime('%d/%m %H:%M') }}</span>
+          </td>
+          <td class="text-center" style="font-size:0.78rem;">
+            {% if partido.estado == 'cerrado' %}
+            <span style="color:#16a34a; font-weight:600;">{{ partido.resultado_str }}</span>
+            {% else %}
+            <span class="text-muted">{{ partido.estado }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end pe-3">
+            <div class="d-flex gap-1 justify-content-end">
+              {% if partido.estado != 'cerrado' %}
+              <a href="{{ url_for('prode_bp.admin_partido_editar', id=partido.id) }}"
+                class="btn btn-xs btn-outline-secondary" style="font-size:0.72rem; padding:1px 7px;">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <button type="button" class="btn btn-xs btn-outline-success" style="font-size:0.72rem; padding:1px 7px;"
+                onclick="abrirCerrar('{{ url_for('prode_bp.admin_partido_cerrar', id=partido.id) }}', '{{ partido.equipo_local.nombre | replace("'", "\'") }}', '{{ partido.equipo_visitante.nombre | replace("'", "\'") }}')"
+                title="Cargar resultado y cerrar">
+                <i class="bi bi-flag-fill"></i>
+              </button>
+              {% else %}
+              <span style="font-size:0.72rem; color:#16a34a; margin-right:4px;">
+                <i class="bi bi-check-circle me-1"></i>{{ partido.goles_local }}–{{ partido.goles_visitante }}
+              </span>
+              <button type="button" class="btn btn-xs btn-outline-warning" style="font-size:0.72rem; padding:1px 7px;"
+                onclick="abrirCerrar('{{ url_for('prode_bp.admin_partido_cerrar', id=partido.id) }}', '{{ partido.equipo_local.nombre | replace("'", "\'") }}', '{{ partido.equipo_visitante.nombre | replace("'", "\'") }}', {{ partido.goles_local }}, {{ partido.goles_visitante }})"
+                title="Corregir resultado">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted p-3 mb-0" style="font-size:0.85rem;">
+      No hay fases. Creá una para poder agregar partidos.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Equipos ── #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+    <span style="font-weight:600; font-size:0.85rem;">
+      <i class="bi bi-shield-fill me-2 text-primary"></i>Equipos / Selecciones
+    </span>
+    <a href="{{ url_for('prode_bp.admin_equipo_nuevo', torneo_id=torneo.id) }}" class="btn btn-xs btn-outline-primary"
+      style="font-size:0.78rem; padding:2px 10px;">
+      <i class="bi bi-plus me-1"></i>Nuevo equipo
+    </a>
+  </div>
+  <div class="card-body p-0">
+    {% if torneo.equipos %}
+    {# groupby solo sobre equipos con grupo definido — evita error con None #}
+    <table class="table table-sm align-middle mb-0" style="font-size:0.83rem;">
+      <thead>
+        <tr style="background:#f8fafc; font-size:0.7rem; text-transform:uppercase; color:#888;">
+          <th class="ps-3 py-2">Equipo</th>
+          <th class="text-center">Grupo</th>
+          <th class="text-end pe-3">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for equipo in torneo.equipos %}
+        <tr>
+          <td class="ps-3">
+            {% from 'prode/macros/equipo.html' import bandera %}
+            <div class="d-flex align-items-center gap-2">
+              {% if equipo.escudo_url %}
+              <img src="{{ url_for('static', filename=equipo.escudo_url) }}"
+                style="width:20px; height:20px; object-fit:contain;" alt="">
+              {% else %}
+              {{ bandera(equipo) }}
+              {% endif %}
+              {{ equipo.nombre }}
+            </div>
+          </td>
+          <td class="text-center text-muted">{{ equipo.grupo or '—' }}</td>
+          <td class="text-end pe-3">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{{ url_for('prode_bp.admin_equipo_editar', id=equipo.id) }}"
+                class="btn btn-xs btn-outline-secondary" style="font-size:0.75rem; padding:2px 8px;">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{{ url_for('prode_bp.admin_equipo_eliminar', id=equipo.id) }}"
+                class="d-inline" onsubmit="return confirm('¿Eliminar {{ equipo.nombre }}?')">
+                <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Eliminar" style="font-size:0.75rem; padding:2px 8px;">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted p-3 mb-0" style="font-size:0.85rem;">No hay equipos cargados.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% endif %} {# fin if torneo #}
+
+{# ── Modal cierre de partido ── #}
+<div class="modal fade" id="modalCerrar" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Cargar resultado</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="formCerrar" method="POST">
+        <div class="modal-body">
+          <p id="lblPartido" class="text-center mb-3" style="font-size:0.9rem;"></p>
+          <div class="row g-2 align-items-center justify-content-center">
+            <div class="col-4">
+              <input type="number" name="goles_local" id="glLocal" class="form-control text-center" min="0" max="99"
+                placeholder="0" required>
+              <div style="font-size:0.72rem; color:#aaa; text-align:center; margin-top:2px;" id="lblLocal"></div>
+            </div>
+            <div class="col-2 text-center" style="font-size:1.2rem; color:#aaa;">–</div>
+            <div class="col-4">
+              <input type="number" name="goles_visitante" id="glVisitante" class="form-control text-center" min="0"
+                max="99" placeholder="0" required>
+              <div style="font-size:0.72rem; color:#aaa; text-align:center; margin-top:2px;" id="lblVisitante"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-success">
+            <i class="bi bi-flag-fill me-1"></i>Cerrar partido
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function abrirCerrar(url, local, visitante, glActual, gvActual) {
+    document.getElementById('formCerrar').action = url;
+    document.getElementById('lblPartido').textContent = local + ' vs ' + visitante;
+    document.getElementById('lblLocal').textContent = local;
+    document.getElementById('lblVisitante').textContent = visitante;
+    document.getElementById('glLocal').value = glActual !== undefined ? glActual : '';
+    document.getElementById('glVisitante').value = gvActual !== undefined ? gvActual : '';
+    const titulo = document.querySelector('#modalCerrar .modal-title');
+    if (titulo) titulo.textContent = glActual !== undefined ? 'Corregir resultado' : 'Cargar resultado';
+    new bootstrap.Modal(document.getElementById('modalCerrar')).show();
+  }
+</script>
+{% endblock %}

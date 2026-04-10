@@ -1,0 +1,15 @@
+Flask
+Flask-Login
+Flask-Mail
+Flask-Migrate
+Flask-SQLAlchemy
+Flask-Limiter
+flask-talisman
+Flask-WTF
+email-validator
+authlib
+requests
+Pillow
+python-dotenv
+gunicorn
+WTForms

@@ -1,0 +1,580 @@
+/* =========================================================
+   custom.css — Estilos propios del Prode
+   Bootstrap 5 ya carga el reset y los componentes base.
+   Acá solo agregamos layout, variables y componentes custom.
+   ========================================================= */
+
+/* ── Variables globales ───────────────────────────────────── */
+:root {
+  --color-primary:       #003263;
+  --color-primary-dark:  #001f4d;
+  --color-primary-mid:   #004a99;
+  --color-primary-light: rgba(0, 50, 99, 0.10);
+  --color-primary-xlight:rgba(0, 50, 99, 0.05);
+
+  --color-accent:        #0066cc;
+  --color-success:       #16a34a;
+  --color-warning:       #d97706;
+  --color-danger:        #dc2626;
+
+  --navbar-height:  54px;
+  --sidebar-width:  240px;
+  --footer-height:  38px;
+  --dev-banner-h:   28px;
+
+  --font-main: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+
+  --radius:    8px;
+  --radius-sm: 5px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow:    0 2px 8px rgba(0,0,0,0.10);
+  --transition: 0.22s ease;
+}
+
+/* ── Reset base ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-main);
+  font-size:   0.875rem;
+  color:       #333;
+  background:  #f4f6f9;
+  margin: 0;
+}
+
+/* ── Banner de desarrollo ─────────────────────────────────── */
+.dev-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 2000;
+  height: var(--dev-banner-h);
+  background: repeating-linear-gradient(
+    -45deg,
+    #f59e0b 0px, #f59e0b 10px,
+    #1f2937 10px, #1f2937 20px
+  );
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: center;
+  line-height: var(--dev-banner-h);
+  text-transform: uppercase;
+}
+
+body.has-dev-banner {
+  --dev-offset: var(--dev-banner-h);
+}
+body:not(.has-dev-banner) {
+  --dev-offset: 0px;
+}
+
+/* ── Navbar ───────────────────────────────────────────────── */
+.app-navbar {
+  position: fixed;
+  top:  var(--dev-offset, 0px);
+  left: 0; right: 0;
+  height: var(--navbar-height);
+  z-index: 1100;
+  background: #fff;
+  border-bottom: 1px solid #e5e9f0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-sidebar-toggle {
+  width: 36px; height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: #555;
+  font-size: 1.25rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition), color var(--transition);
+}
+.btn-sidebar-toggle:hover { background: var(--color-primary-xlight); color: var(--color-primary); }
+
+.navbar-brand-text {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.navbar-brand-text:hover { color: var(--color-primary-dark); }
+
+.navbar-divider {
+  width: 1px;
+  height: 20px;
+  background: #dde2ea;
+  flex-shrink: 0;
+}
+
+.navbar-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: #888;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.navbar-breadcrumb a { color: #666; text-decoration: none; white-space: nowrap; }
+.navbar-breadcrumb a:hover { color: var(--color-primary); }
+.navbar-breadcrumb span { white-space: nowrap; color: #444; font-weight: 500; }
+
+.navbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.nav-icon-btn {
+  width: 34px; height: 34px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: #666;
+  font-size: 1rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+.nav-icon-btn:hover { background: var(--color-primary-xlight); color: var(--color-primary); }
+
+.user-avatar-btn {
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.user-avatar-btn:hover { background: var(--color-primary-xlight); }
+
+.user-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+}
+
+.user-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #444;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.app-sidebar {
+  position: fixed;
+  top:    calc(var(--dev-offset, 0px) + var(--navbar-height));
+  left:   0;
+  bottom: 0;
+  width:  var(--sidebar-width);
+  z-index: 1050;
+  background: var(--color-primary-dark);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width var(--transition), transform var(--transition);
+}
+
+/* Panel de usuario en el sidebar */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.sidebar-user-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.2);
+  flex-shrink: 0;
+}
+.sidebar-user-info { min-width: 0; }
+.sidebar-user-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-user-role {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Navegación */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.5rem 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+/* Categorías colapsables */
+.nav-category-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 1rem 0.35rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition);
+}
+.nav-category-btn:hover { background: rgba(255,255,255,0.05); }
+.nav-category-btn.activa  .nav-category-text,
+.nav-category-btn.abierta .nav-category-text { color: rgba(255,255,255,0.9); }
+
+.nav-category-text {
+  flex: 1;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-category-chevron {
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.3);
+  transition: transform var(--transition);
+  flex-shrink: 0;
+}
+.nav-category-btn.abierta .nav-category-chevron { transform: rotate(180deg); }
+
+/* Contenedor de ítems (acordeón) */
+.nav-category-items {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.28s ease;
+}
+.nav-category-items.expandida { max-height: 9999px; }
+
+/* Ítems individuales */
+.nav-item-parent { position: relative; }
+
+.nav-link-sidebar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 1rem 0.45rem 1.15rem;
+  color: rgba(255,255,255,0.65);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  font-size: 0.82rem;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+  position: relative;
+}
+.nav-link-sidebar:hover {
+  background: rgba(255,255,255,0.07);
+  color: #fff;
+}
+.nav-link-sidebar.active {
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  border-left-color: #4da6ff;
+  font-weight: 600;
+}
+
+.nav-icon { font-size: 0.9rem; flex-shrink: 0; }
+.nav-text  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Badge numérico en el sidebar */
+.sidebar-badge {
+  margin-left: auto;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1em 0.45em;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* Pie del sidebar */
+.sidebar-footer {
+  flex-shrink: 0;
+  padding: 0.6rem 1rem;
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.25);
+  border-top: 1px solid rgba(255,255,255,0.07);
+  text-align: center;
+}
+
+/* Overlay para mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  background: rgba(0,0,0,0.45);
+}
+.sidebar-overlay.visible { display: block; }
+
+/* ── Contenido principal ──────────────────────────────────── */
+.app-main {
+  margin-left:  var(--sidebar-width);
+  padding-top:  calc(var(--dev-offset, 0px) + var(--navbar-height) + 1.25rem);
+  padding-bottom: calc(var(--footer-height) + 1.5rem);
+  padding-left:  1.5rem;
+  padding-right: 1.5rem;
+  min-height:   100vh;
+  transition: margin-left var(--transition);
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.app-footer {
+  position: fixed;
+  bottom: 0; left: var(--sidebar-width); right: 0;
+  height: var(--footer-height);
+  z-index: 900;
+  background: #fff;
+  border-top: 1px solid #e5e9f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  font-size: 0.72rem;
+  color: #aaa;
+  transition: left var(--transition);
+}
+.footer-version { font-family: var(--font-mono); font-size: 0.7rem; color: #ccc; }
+
+/* ── Estado sidebar colapsado ─────────────────────────────── */
+body.sidebar-collapsed .app-sidebar  { width: 0; }
+body.sidebar-collapsed .app-main     { margin-left: 0; }
+body.sidebar-collapsed .app-footer   { left: 0; }
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+    width: var(--sidebar-width);
+  }
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+  }
+  .app-main  { margin-left: 0; }
+  .app-footer { left: 0; }
+  body.sidebar-collapsed .app-sidebar { transform: translateX(-100%); }
+}
+
+/* ── Encabezado de página ─────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.page-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.2;
+}
+.page-subtitle {
+  font-size: 0.82rem;
+  color: #888;
+  margin: 0.2rem 0 0;
+}
+
+/* ── Botón principal de la app ────────────────────────────── */
+.btn-primary-app {
+  background: var(--color-primary);
+  color: #fff !important;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  transition: background var(--transition), box-shadow var(--transition);
+}
+.btn-primary-app:hover {
+  background: var(--color-primary-mid);
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(0, 50, 99, 0.3);
+}
+.btn-primary-app:active { background: var(--color-primary-dark); }
+
+/* ── Badges de estado ─────────────────────────────────────── */
+.badge-estado-activo {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2em 0.6em;
+  border-radius: 10px;
+  background: #dcfce7;
+  color: #15803d;
+  white-space: nowrap;
+}
+.badge-estado-inactivo {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2em 0.6em;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+/* ── Texto auxiliar (stat labels) ─────────────────────────── */
+.stat-label {
+  font-size: 0.72rem;
+  color: #999;
+}
+
+/* ── Login ────────────────────────────────────────────────── */
+.body-loginlogout {
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.login-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 2.25rem 2rem;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.login-logo img {
+  max-height: 56px;
+  max-width:  180px;
+  object-fit: contain;
+}
+
+.login-titulo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-primary);
+  margin-bottom: 0.2rem;
+}
+.login-subtitulo {
+  font-size: 0.78rem;
+  text-align: center;
+  color: #999;
+  margin-bottom: 1.5rem;
+}
+
+.login-divider {
+  text-align: center;
+  font-size: 0.72rem;
+  color: #bbb;
+  margin: 1rem 0;
+  position: relative;
+}
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 38%;
+  height: 1px;
+  background: #e5e9f0;
+}
+.login-divider::before { left: 0; }
+.login-divider::after  { right: 0; }
+
+.btn-ingresar {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.btn-ingresar:hover { background: var(--color-primary-mid); color: #fff; }
+
+.btn-microsoft {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  border: 1px solid #dde2ea;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: #333;
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.btn-microsoft:hover { background: #f8fafc; border-color: #bbb; color: #111; }
+
+.login-footer {
+  text-align: center;
+  font-size: 0.7rem;
+  color: #bbb;
+  margin-top: 1.5rem;
+}
+
+/* ── Animación pulso (para "En curso" en prode/index) ─────── */
+@keyframes pulso {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 8px #4ade80; }
+  50%       { opacity: 0.5; box-shadow: 0 0 16px #4ade80; }
+}

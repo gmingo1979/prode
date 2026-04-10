@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Sesiones activas</h1>
+    <p class="page-subtitle">
+      Usuarios conectados en los últimos {{ timeout_min }} minutos.
+      La página se actualiza sola cada 30 segundos.
+    </p>
+  </div>
+  <span class="badge bg-success" id="badgeActivas" style="font-size:0.85rem;padding:.4rem .8rem;">
+    {{ activas|length }} en línea
+  </span>
+</div>
+
+{# ── En línea ─────────────────────────────────────────────────────────── #}
+<h6 class="text-muted fw-semibold mb-2" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.08em;">
+  <span class="d-inline-block rounded-circle bg-success me-1" style="width:8px;height:8px;"></span>
+  En línea ahora
+</h6>
+
+{% if activas %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0" style="font-size:0.83rem;">
+      <thead>
+        <tr style="background:#f8fafc;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em;color:#888;">
+          <th class="ps-3 py-2">Usuario</th>
+          <th class="py-2">IP</th>
+          <th class="py-2">Dispositivo</th>
+          <th class="py-2">Primer acceso</th>
+          <th class="py-2">Última actividad</th>
+          <th class="py-2 pe-3 text-end"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in activas %}
+        <tr class="border-bottom" style="border-color:#f0f0f0 !important;" id="fila-{{ s.id }}">
+
+          <td class="ps-3">
+            <div class="d-flex align-items-center gap-2">
+              {# Foto de perfil o iniciales #}
+              {% if s.usuario.foto_perfil %}
+              <img src="{{ url_for('static', filename=s.usuario.foto_perfil) }}" class="rounded-circle"
+                style="width:30px;height:30px;object-fit:cover;">
+              {% else %}
+              <div class="rounded-circle d-flex align-items-center justify-content-center"
+                style="width:30px;height:30px;background:#003263;color:white;font-size:0.7rem;font-weight:700;flex-shrink:0;">
+                {{ (s.usuario.nombre[0] ~ s.usuario.apellido[0])|upper if s.usuario.nombre else s.usuario.email[0]|upper
+                }}
+              </div>
+              {% endif %}
+              <div>
+                <div style="font-weight:600;">
+                  {{ s.usuario.nombre_completo if s.usuario.nombre else s.usuario.email }}
+                </div>
+                <div style="font-size:0.72rem;color:#aaa;">{{ s.usuario.email }}</div>
+              </div>
+            </div>
+            {# Indicar si es el usuario actual #}
+            {% if mi_token and s.id == mi_token.id %}
+            <span class="badge bg-primary ms-1" style="font-size:0.65rem;">Vos</span>
+            {% endif %}
+          </td>
+
+          <td>
+            <code style="font-size:0.8rem;">{{ s.ip or '—' }}</code>
+          </td>
+
+          <td class="text-muted" style="font-size:0.8rem;">
+            <i class="bi bi-{{ 'phone' if 'Mobile' in s.dispositivo else 'laptop' }} me-1"></i>
+            {{ s.dispositivo }}
+          </td>
+
+          <td class="text-muted" style="font-size:0.78rem;white-space:nowrap;">
+            {{ s.primer_acceso | hora_local('%d/%m %H:%M') }}
+          </td>
+
+          <td style="white-space:nowrap;">
+            <span class="badge rounded-pill" style="background:#dcfce7;color:#16a34a;font-size:0.72rem;">
+              <i class="bi bi-circle-fill me-1" style="font-size:.45rem;vertical-align:middle;"></i>
+              hace {{ s.minutos_desde_actividad if s.minutos_desde_actividad is not none else '?' }} min
+            </span>
+          </td>
+
+          <td class="pe-3 text-end">
+            {% if not (mi_token and s.id == mi_token.id) %}
+            <button class="btn btn-sm btn-outline-danger py-0 px-2"
+              onclick="cerrarSesion({{ s.id }}, '{{ s.usuario.nombre_completo if s.usuario.nombre else s.usuario.email }}')"
+              title="Forzar cierre de sesión">
+              <i class="bi bi-box-arrow-right"></i>
+            </button>
+            {% else %}
+            <span class="text-muted" style="font-size:0.72rem;">—</span>
+            {% endif %}
+          </td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body text-center py-4 text-muted" style="font-size:0.85rem;">
+    <i class="bi bi-person-slash" style="font-size:2rem;opacity:.3;"></i>
+    <p class="mt-2 mb-0">Ningún usuario activo en este momento.</p>
+  </div>
+</div>
+{% endif %}
+
+
+{# ── Inactivos recientes ──────────────────────────────────────────────── #}
+{% if inactivas %}
+<h6 class="text-muted fw-semibold mb-2 mt-2" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.08em;">
+  <span class="d-inline-block rounded-circle bg-secondary me-1" style="width:8px;height:8px;opacity:.5;"></span>
+  Inactivos recientemente (última sesión registrada)
+</h6>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0" style="font-size:0.82rem;">
+      <thead>
+        <tr style="background:#f8fafc;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em;color:#888;">
+          <th class="ps-3 py-2">Usuario</th>
+          <th class="py-2">IP</th>
+          <th class="py-2">Dispositivo</th>
+          <th class="py-2 pe-3">Última actividad</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in inactivas %}
+        <tr class="border-bottom" style="border-color:#f0f0f0 !important;opacity:.7;">
+          <td class="ps-3" style="font-weight:500;">
+            {{ s.usuario.nombre_completo if s.usuario.nombre else s.usuario.email }}
+          </td>
+          <td><code style="font-size:0.78rem;color:#aaa;">{{ s.ip or '—' }}</code></td>
+          <td class="text-muted" style="font-size:0.78rem;">{{ s.dispositivo }}</td>
+          <td class="text-muted pe-3" style="font-size:0.78rem;white-space:nowrap;">
+            {{ s.ultimo_visto | hora_local('%d/%m/%Y %H:%M') }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+  // Auto-refresh cada 30 segundos
+  setTimeout(() => window.location.reload(), 30000);
+
+  async function cerrarSesion(id, nombre) {
+    if (!confirm(`¿Cerrar la sesión de ${nombre}?\nEl usuario será redirigido al login en su próxima acción.`))
+      return;
+
+    const r = await fetch(`/sesiones/${id}/cerrar`, { method: 'POST' });
+    const d = await r.json();
+
+    if (d.ok) {
+      const fila = document.getElementById(`fila-${id}`);
+      if (fila) {
+        fila.style.transition = 'opacity .4s';
+        fila.style.opacity = '0';
+        setTimeout(() => fila.remove(), 400);
+      }
+    } else {
+      alert(d.msg || 'No se pudo cerrar la sesión.');
+    }
+  }
+</script>
+{% endblock %}

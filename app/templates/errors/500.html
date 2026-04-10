@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width:520px; margin:4rem auto; text-align:center;">
+
+  <div style="font-size:5rem; font-weight:800; color:#e8ecf0; line-height:1; margin-bottom:0.5rem;">
+    500
+  </div>
+
+  <h1 style="font-size:1.1rem; font-weight:600; color:#1a1a2e; margin-bottom:0.5rem;">
+    Error interno del servidor
+  </h1>
+
+  <p style="font-size:0.85rem; color:#888; margin-bottom:2rem;">
+    Algo salió mal del lado del servidor. El error fue registrado automáticamente.
+  </p>
+
+  <div class="d-flex gap-2 justify-content-center">
+    <a href="{{ url_for('main_bp.index') }}" class="btn btn-sm btn-primary-app">
+      <i class="bi bi-house me-1"></i>Ir al inicio
+    </a>
+    <button onclick="location.reload()" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-clockwise me-1"></i>Reintentar
+    </button>
+  </div>
+
+</div>
+
+{% endblock %}

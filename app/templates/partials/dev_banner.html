@@ -1,0 +1,12 @@
+{# =============================================================
+   partials/dev_banner.html — Banner de modo desarrollo
+   
+   Solo se incluye cuando is_dev = True (FLASK_ENV=development).
+   Ver base.html: {% if is_dev %} ... {% endif %}
+   
+   No requiere variables adicionales.
+============================================================= #}
+
+<div class="dev-banner" role="alert" aria-live="polite">
+  ⚠ &nbsp; MODO DESARROLLO — Entorno local &nbsp; ⚠
+</div>

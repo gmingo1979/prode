@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Funciones del sistema</h1>
+    <p class="page-subtitle">{{ total }} función{{ 'es' if total != 1 }} registrada{{ 's' if total != 1 }}.</p>
+  </div>
+  <a href="{{ url_for('funciones_bp.nueva') }}" class="btn btn-sm btn-primary-app">
+    <i class="bi bi-plus-lg me-1"></i>Nueva función
+  </a>
+</div>
+
+{% if funciones %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 app-datatable" style="font-size:0.84rem;">
+      <thead>
+        <tr style="background:#f8fafc; font-size:0.72rem; text-transform:uppercase;
+                   letter-spacing:0.05em; color:#888;">
+          <th class="ps-3 py-2">Nombre</th>
+          <th class="d-none d-md-table-cell">Categoría</th>
+          <th class="d-none d-md-table-cell">Endpoint</th>
+          <th>Menú</th>
+          <th class="d-none d-sm-table-cell">Roles</th>
+          <th class="text-end pe-3" data-dt-orderable="false">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in funciones %}
+        <tr>
+          <td class="ps-3">
+            <div class="d-flex align-items-center gap-2">
+              {% if f.icono %}
+                <i class="{{ f.icono }}" style="color:var(--color-primary); width:16px; text-align:center;"></i>
+              {% endif %}
+              <div>
+                <span style="font-weight:500;">{{ f.nombre }}</span>
+                {% if f.descripcion %}
+                  <div style="font-size:0.75rem; color:#aaa;">{{ f.descripcion }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+
+          <td class="d-none d-md-table-cell text-muted" style="font-size:0.78rem;">
+            {{ f.categoria or '—' }}
+          </td>
+
+          <td class="d-none d-md-table-cell">
+            <code style="font-size:0.75rem; background:#f4f6f9; padding:0.15em 0.4em;
+                         border-radius:4px; color:#555;">
+              {{ f.endpoint }}
+            </code>
+          </td>
+
+          <td>
+            {% if f.es_menu %}
+              <span class="badge-estado-activo">
+                <i class="bi bi-layout-sidebar me-1"></i>{{ f.ubicacion_menu }}
+              </span>
+            {% else %}
+              <span style="color:#ccc; font-size:0.78rem;">No</span>
+            {% endif %}
+          </td>
+
+          <td class="d-none d-sm-table-cell">
+            {% if f.roles %}
+              {% for rol in f.roles %}
+                <span style="display:inline-block; font-size:0.68rem; font-weight:600;
+                             background:var(--color-primary-light); color:var(--color-primary);
+                             padding:0.1em 0.5em; border-radius:10px; margin:1px;">
+                  {{ rol.nombre }}
+                </span>
+              {% endfor %}
+            {% else %}
+              <span class="text-muted" style="font-size:0.78rem;">Sin roles</span>
+            {% endif %}
+          </td>
+
+          <td class="text-end pe-3">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{{ url_for('funciones_bp.editar', id=f.id) }}"
+                 class="btn btn-sm btn-outline-secondary py-0 px-2" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{{ url_for('funciones_bp.eliminar', id=f.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('¿Eliminar la función \'{{ f.nombre }}\'?')">
+                <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Eliminar"
+                        {% if f.roles %}disabled title="Tiene roles asignados"{% endif %}>
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-toggles" style="font-size:2.5rem; opacity:0.3;"></i>
+    <p class="mt-3 mb-0">No hay funciones registradas todavía.</p>
+    <a href="{{ url_for('funciones_bp.nueva') }}" class="btn btn-sm btn-primary-app mt-3">
+      Crear primera función
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

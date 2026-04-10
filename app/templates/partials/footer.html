@@ -1,0 +1,20 @@
+{# =============================================================
+   partials/footer.html — Pie de página fijo
+   
+   Incluido automáticamente desde base.html.
+   
+   Variables de contexto utilizadas:
+     - ano_copyright     : Año del copyright (ej: "2025")
+     - nombre_empresa_xl : Nombre largo de la empresa
+     - version           : Versión de la app
+============================================================= #}
+
+<footer class="app-footer" id="appFooter" role="contentinfo">
+  <span>
+    © {{ ano_copyright }} <strong>{{ nombre_empresa_xl }}</strong>
+    &nbsp;·&nbsp; Todos los derechos reservados
+  </span>
+  <span class="footer-version">
+    v{{ version }}
+  </span>
+</footer>

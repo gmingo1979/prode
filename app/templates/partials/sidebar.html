@@ -1,0 +1,178 @@
+{# =============================================================
+partials/sidebar.html — Menú lateral de navegación
+
+Mejoras respecto a la versión anterior:
+- Categorías colapsables con animación suave
+- Categoría activa destacada y expandida automáticamente
+- Ítem activo resaltado con acento de color
+- Estado de categorías persistido en localStorage
+- Indicador de sección activa en el borde izquierdo
+- Hover pulido con transiciones
+- Soporte para endpoint con prefijo de blueprint
+(ej: request.endpoint == 'monitor_bp.dashboard')
+============================================================= #}
+
+<aside class="app-sidebar" id="appSidebar" aria-label="Menú principal">
+
+  {# ── Panel de usuario ─────────────────────────────────────── #}
+  <div class="sidebar-user">
+    <img src="{{ url_for('static', filename=current_user.profile_pic) }}"
+      onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default.svg') }}'"
+      alt="Foto de {{ current_user.nombre_completo }}" class="sidebar-user-avatar">
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name">{{ current_user.nombre_completo }}</div>
+      <div class="sidebar-user-role">
+        {% if current_user.roles %}
+        {{ current_user.roles | map(attribute='nombre') | join(', ') }}
+        {% else %}
+        Sin rol asignado
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Navegación dinámica por roles ───────────────────────── #}
+  <nav class="sidebar-nav" id="sidebarNav" aria-label="Navegación del sistema">
+
+    {% if menu_sidebar %}
+
+    {% for categoria, funciones in menu_sidebar.items() %}
+
+    {# Detectar si esta categoría contiene el ítem activo #}
+    {% set cat_activa = namespace(value=false) %}
+    {% for f in funciones %}
+    {% if request.endpoint == f.endpoint %}
+    {% set cat_activa.value = true %}
+    {% endif %}
+    {% endfor %}
+
+    {# Slug estable para identificar la categoría en JS #}
+    {% set cat_slug = categoria | lower | replace(' ', '-') | replace('/', '-') %}
+
+    {# ── Encabezado de categoría (colapsable) ─────────── #}
+    <button class="nav-category-btn {% if cat_activa.value %}activa{% endif %}" data-cat="{{ cat_slug }}"
+      aria-expanded="{{ 'true' if cat_activa.value else 'false' }}" title="{{ categoria }}">
+      <span class="nav-category-text">{{ categoria }}</span>
+      <i class="bi bi-chevron-down nav-category-chevron"></i>
+    </button>
+
+    {# ── Ítems de la categoría ────────────────────────── #}
+    <div class="nav-category-items {% if cat_activa.value %}expandida{% endif %}" data-cat-items="{{ cat_slug }}">
+      {% for f in funciones %}
+      <div class="nav-item-parent">
+        <a href="{{ url_for(f.endpoint) }}"
+          class="nav-link-sidebar {% if request.endpoint == f.endpoint %}active{% endif %}" title="{{ f.nombre }}">
+          <i class="{{ f.icono or 'bi bi-circle' }} nav-icon"></i>
+          <span class="nav-text">{{ f.nombre }}</span>
+
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% endfor %}
+
+    {% else %}
+    <div class="nav-category-btn" style="cursor:default; opacity:0.5;">Sin accesos</div>
+    <div style="padding: 0.5rem 1rem; font-size: 0.78rem; color: rgba(255,255,255,0.35);">
+      No tenés funciones asignadas.<br>
+      Contactá al administrador.
+    </div>
+    {% endif %}
+
+  </nav>
+
+  {# ── Pie del sidebar ──────────────────────────────────────── #}
+  <div class="sidebar-footer">
+    {{ nombre_aplicacion }} &nbsp;·&nbsp; v{{ version }}
+  </div>
+
+</aside>
+
+<script>
+  (function () {
+    'use strict';
+
+    // ── Cerrar una categoría ──────────────────────────────────
+    function cerrar(btn, items) {
+      // Fijar altura actual antes de animar a 0
+      items.style.maxHeight = items.scrollHeight + 'px';
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          items.style.maxHeight = '0';
+        });
+      });
+      items.classList.remove('expandida');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.classList.remove('abierta');
+    }
+
+    // ── Abrir una categoría ───────────────────────────────────
+    function abrir(btn, items) {
+      items.classList.add('expandida');
+      items.style.maxHeight = items.scrollHeight + 'px';
+      btn.setAttribute('aria-expanded', 'true');
+      btn.classList.add('abierta');
+      // Una vez terminada la transición, dejar en auto para que
+      // el contenido pueda crecer si cambia (badges, etc.)
+      items.addEventListener('transitionend', function handler() {
+        if (btn.getAttribute('aria-expanded') === 'true') {
+          items.style.maxHeight = '9999px';
+        }
+        items.removeEventListener('transitionend', handler);
+      });
+    }
+
+    // ── Toggle accordion: cierra todas, abre solo la clickeada ─
+    function toggleCategoria(btnClickeado) {
+      const estabaAbierta = btnClickeado.getAttribute('aria-expanded') === 'true';
+
+      // Cerrar todas
+      document.querySelectorAll('.nav-category-btn').forEach(function (btn) {
+        const items = document.querySelector('[data-cat-items="' + btn.dataset.cat + '"]');
+        if (items && btn.getAttribute('aria-expanded') === 'true') {
+          cerrar(btn, items);
+        }
+      });
+
+      // Si estaba cerrada, abrir la clickeada
+      if (!estabaAbierta) {
+        const itemsClickeados = document.querySelector('[data-cat-items="' + btnClickeado.dataset.cat + '"]');
+        if (itemsClickeados) abrir(btnClickeado, itemsClickeados);
+      }
+    }
+
+    // ── Inicializar al cargar ─────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+      // Limpiar localStorage viejo
+      localStorage.removeItem('sidebar_cats');
+      localStorage.removeItem('sidebar_cats_v2');
+
+      document.querySelectorAll('.nav-category-btn').forEach(function (btn) {
+        const items = document.querySelector('[data-cat-items="' + btn.dataset.cat + '"]');
+        const esActiva = btn.classList.contains('activa');
+
+        if (items) {
+          if (esActiva) {
+            // Abrir sin animación la categoría activa
+            items.classList.add('expandida');
+            items.style.maxHeight = '9999px';
+            btn.setAttribute('aria-expanded', 'true');
+            btn.classList.add('abierta');
+          } else {
+            // Todas las demás: cerradas
+            items.classList.remove('expandida');
+            items.style.maxHeight = '0';
+            btn.setAttribute('aria-expanded', 'false');
+            btn.classList.remove('abierta');
+          }
+        }
+
+        btn.addEventListener('click', function () {
+          toggleCategoria(btn);
+        });
+      });
+    });
+
+  })();
+</script>

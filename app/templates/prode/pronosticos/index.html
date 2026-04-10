@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% from 'prode/macros/equipo.html' import bandera %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ torneo.nombre }}</h1>
+    <p class="page-subtitle">
+      Pronósticos — se bloquean 2 horas antes de cada partido.
+      <a href="{{ url_for('prode_bp.ranking_torneo', torneo_id=torneo.id) }}" class="ms-2" style="font-size:0.8rem;">
+        <i class="bi bi-trophy me-1"></i>Ver ranking
+      </a>
+      <a href="{{ url_for('prode_bp.tabla_grupos', torneo_id=torneo.id) }}" class="ms-2" style="font-size:0.8rem;">
+        <i class="bi bi-grid me-1"></i>Tabla de grupos
+      </a>
+    </p>
+  </div>
+  <a href="{{ url_for('prode_bp.index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Volver
+  </a>
+</div>
+
+{# ── Resumen urgente ─────────────────────────────────────────────────── #}
+{% if total_disponibles > 0 %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <div class="row align-items-center g-3">
+
+      <div class="col-12 col-md-5">
+        <div class="d-flex justify-content-between mb-1" style="font-size:0.8rem;">
+          <span style="font-weight:600;">Tu progreso</span>
+          <span class="text-muted">{{ total_pronosticados }} / {{ total_disponibles }} partidos</span>
+        </div>
+        {% set pct = (total_pronosticados / total_disponibles * 100) | int %}
+        <div class="progress" style="height:8px; border-radius:99px;">
+          <div class="progress-bar" role="progressbar"
+            style="width:{{ pct }}%; background:#003263; border-radius:99px;"></div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-7">
+        <div class="d-flex flex-wrap gap-2">
+          {% if pendientes_urgentes %}
+          <div class="d-flex align-items-center gap-2 rounded px-3 py-2"
+            style="background:#fef9c3; border:1px solid #fde047;">
+            <i class="bi bi-pencil-square" style="color:#854d0e;"></i>
+            <span style="font-size:0.83rem; color:#854d0e; font-weight:500;">
+              {{ pendientes_urgentes | length }} sin pronosticar
+            </span>
+          </div>
+          {% else %}
+          <div class="d-flex align-items-center gap-2 rounded px-3 py-2"
+            style="background:#dcfce7; border:1px solid #86efac;">
+            <i class="bi bi-check-circle-fill" style="color:#16a34a;"></i>
+            <span style="font-size:0.83rem; color:#15803d; font-weight:500;">
+              ¡Todos los pronósticos al día!
+            </span>
+          </div>
+          {% endif %}
+
+          {% if en_24h %}
+          <div class="d-flex align-items-center gap-2 rounded px-3 py-2"
+            style="background:#fee2e2; border:1px solid #fca5a5;">
+            <i class="bi bi-alarm" style="color:#dc2626;"></i>
+            <span style="font-size:0.83rem; color:#991b1b; font-weight:500;">
+              {{ en_24h | length }} se bloquean en 24hs
+            </span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Formulario con tabs por fecha ──────────────────────────────────── #}
+<form method="POST" id="formPronosticos">
+
+  <div class="mb-3" style="overflow-x:auto; white-space:nowrap; padding-bottom:4px;">
+    <div class="d-inline-flex gap-1">
+      {% for fecha in fechas_ordenadas %}
+      {% set faltan = faltan_por_fecha.get(fecha, 0) %}
+      {% set tiene_disponibles = namespace(v=false) %}
+      {% for p in por_fecha[fecha] %}
+      {% if not p.pronosticos_bloqueados %}{% set tiene_disponibles.v = true %}{% endif %}
+      {% endfor %}
+      <button type="button"
+        class="btn btn-sm tab-fecha {{ 'btn-primary-app' if fecha == tab_activa else 'btn-outline-secondary' }}"
+        data-fecha="{{ fecha.isoformat() }}" onclick="cambiarTab('{{ fecha.isoformat() }}', this)"
+        style="white-space:nowrap;">
+        {%- set dias_es =
+        {'Monday':'Lun','Tuesday':'Mar','Wednesday':'Mié','Thursday':'Jue','Friday':'Vie','Saturday':'Sáb','Sunday':'Dom'}
+        -%}
+        {{ dias_es[fecha.strftime('%A')] }} {{ fecha.strftime('%d/%m') }}
+        {% if faltan > 0 %}
+        <span class="badge rounded-pill ms-1" style="background:{{ '#dc2626' if tiene_disponibles.v else '#aaa' }};
+                     color:#fff; font-size:0.62rem; padding:2px 5px; vertical-align:middle;">
+          {{ faltan }}
+        </span>
+        {% endif %}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% for fecha in fechas_ordenadas %}
+  <div class="tab-contenido" id="tab-{{ fecha.isoformat() }}"
+    style="{{ '' if fecha == tab_activa else 'display:none;' }}">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0" style="font-size:0.85rem;">
+          <thead>
+            <tr style="background:#f8fafc; font-size:0.7rem; text-transform:uppercase;
+                       letter-spacing:0.05em; color:#888;">
+              <th class="ps-3 py-2 text-end" style="width:38%;">Local</th>
+              <th class="text-center py-2" style="width:24%;">Pronóstico</th>
+              <th class="py-2" style="width:38%;">Visitante</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for partido in por_fecha[fecha] %}
+            {% set pron = mis_pronosticos.get(partido.id) %}
+            {% set bloqueado = partido.pronosticos_bloqueados %}
+            <tr class="{{ 'table-light' if bloqueado }}">
+
+              <td class="ps-3 text-end">
+                <div class="d-flex align-items-center justify-content-end gap-2">
+                  <div>
+                    <div class="d-flex align-items-center justify-content-end gap-1">
+                      <span style="font-weight:500;">{{ partido.equipo_local.nombre }}</span>
+                      {{ bandera(partido.equipo_local) }}
+                    </div>
+                    <div style="font-size:0.7rem; color:#aaa;">
+                      {{ partido.fecha_hora.strftime('%H:%M') }}hs — {{ partido.fase.nombre }}
+                    </div>
+                  </div>
+                  {% if partido.equipo_local.escudo_url %}
+                  <img src="{{ url_for('static', filename=partido.equipo_local.escudo_url) }}"
+                    style="width:28px; height:28px; object-fit:contain;" alt="">
+                  {% else %}
+                  {{ bandera(partido.equipo_local, size='lg') }}
+                  {% endif %}
+                </div>
+              </td>
+
+              <td class="text-center">
+                {% if partido.estado == 'cerrado' %}
+                <div class="d-flex flex-column align-items-center gap-1">
+                  <span style="font-size:0.95rem; font-weight:600; color:#003263;">
+                    {{ partido.resultado_str }}
+                  </span>
+                  {% if pron %}
+                  <span style="font-size:0.78rem; color:#888;">
+                    Tu pron: {{ pron.goles_local }}–{{ pron.goles_visitante }}
+                  </span>
+                  {% set pts_max = torneo.config.resultado_exacto if torneo.config else 3 %}
+                  {% set pts_par = torneo.config.resultado_parcial if torneo.config else 1 %}
+                  {% if pron.puntos == pts_max %}
+                  <span class="badge" style="background:#dcfce7;color:#16a34a;font-size:0.7rem;">+{{ pron.puntos }}
+                    🎯</span>
+                  {% elif pron.puntos >= pts_par %}
+                  <span class="badge" style="background:#fef9c3;color:#854d0e;font-size:0.7rem;">+{{ pron.puntos }}
+                    ✅</span>
+                  {% else %}
+                  <span class="badge" style="background:#fee2e2;color:#991b1b;font-size:0.7rem;">0 ❌</span>
+                  {% endif %}
+                  {% else %}
+                  <span style="font-size:0.72rem;color:#bbb;">Sin pronóstico</span>
+                  {% endif %}
+                </div>
+
+                {% elif bloqueado %}
+                <div class="d-flex flex-column align-items-center gap-1">
+                  <span style="font-size:0.9rem;color:{{ '#555' if pron else '#ccc' }};">
+                    {% if pron %}{{ pron.goles_local }} – {{ pron.goles_visitante }}{% else %}— : —{% endif %}
+                  </span>
+                  <span style="font-size:0.7rem;color:#f59e0b;">
+                    <i class="bi bi-lock-fill me-1"></i>bloqueado
+                  </span>
+                </div>
+
+                {% else %}
+                <div class="d-flex align-items-center justify-content-center gap-1">
+                  <input type="number" name="local_{{ partido.id }}" class="form-control form-control-sm text-center"
+                    style="width:52px;" min="0" max="99" value="{{ pron.goles_local if pron is not none else '' }}"
+                    placeholder="–">
+                  <span style="color:#aaa;font-weight:700;font-size:1rem;">:</span>
+                  <input type="number" name="visitante_{{ partido.id }}"
+                    class="form-control form-control-sm text-center" style="width:52px;" min="0" max="99"
+                    value="{{ pron.goles_visitante if pron is not none else '' }}" placeholder="–">
+                </div>
+                {% endif %}
+              </td>
+
+              <td class="pe-3">
+                <div class="d-flex align-items-center gap-2">
+                  {% if partido.equipo_visitante.escudo_url %}
+                  <img src="{{ url_for('static', filename=partido.equipo_visitante.escudo_url) }}"
+                    style="width:28px; height:28px; object-fit:contain;" alt="">
+                  {% else %}
+                  {{ bandera(partido.equipo_visitante, size='lg') }}
+                  {% endif %}
+                  <div>
+                    <div class="d-flex align-items-center gap-1">
+                      {{ bandera(partido.equipo_visitante) }}
+                      <span style="font-weight:500;">{{ partido.equipo_visitante.nombre }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div style="position:sticky; bottom:1.5rem; text-align:right; pointer-events:none;">
+    <button type="submit" class="btn btn-primary-app shadow" style="pointer-events:all;">
+      <i class="bi bi-floppy me-1"></i>Guardar pronósticos
+    </button>
+  </div>
+
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function cambiarTab(fechaIso, btn) {
+    document.querySelectorAll('.tab-contenido').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab-fecha').forEach(el => {
+      el.classList.remove('btn-primary-app');
+      el.classList.add('btn-outline-secondary');
+    });
+    document.getElementById('tab-' + fechaIso).style.display = 'block';
+    btn.classList.add('btn-primary-app');
+    btn.classList.remove('btn-outline-secondary');
+    sessionStorage.setItem('prode_tab_{{ torneo.id }}', fechaIso);
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const guardada = sessionStorage.getItem('prode_tab_{{ torneo.id }}');
+    if (guardada) {
+      const btn = document.querySelector('.tab-fecha[data-fecha="' + guardada + '"]');
+      if (btn) cambiarTab(guardada, btn);
+    }
+  });
+</script>
+{% endblock %}

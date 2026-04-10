@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Ranking — {{ torneo.nombre }}</h1>
+    <p class="page-subtitle">
+      {{ ranking | length }} participante{{ 's' if ranking|length != 1 }}.
+    </p>
+  </div>
+  <a href="{{ url_for('prode_bp.index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Volver
+  </a>
+</div>
+
+{# Filtro por sector #}
+{% if sectores %}
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  <a href="{{ url_for('prode_bp.ranking_torneo', torneo_id=torneo.id) }}"
+    class="btn btn-sm {{ 'btn-primary-app' if not sector_actual else 'btn-outline-secondary' }}">
+    Todos
+  </a>
+  {% for s in sectores %}
+  <a href="{{ url_for('prode_bp.ranking_torneo', torneo_id=torneo.id, sector=s) }}"
+    class="btn btn-sm {{ 'btn-primary-app' if sector_actual == s else 'btn-outline-secondary' }}">
+    {{ s }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if ranking %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+      <thead>
+        <tr style="background:#f8fafc; font-size:0.72rem; text-transform:uppercase;
+                   letter-spacing:0.05em; color:#888;">
+          <th class="ps-3 py-2" style="width:60px;">Pos.</th>
+          <th class="py-2">Jugador</th>
+          <th class="text-center py-2 d-none d-md-table-cell">Pronosticados</th>
+          <th class="text-center py-2 d-none d-sm-table-cell">Exactos 🎯</th>
+          <th class="text-center py-2 d-none d-sm-table-cell">Aciertos ✅</th>
+          <th class="text-center py-2">Puntos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in ranking %}
+        {% set es_yo = r.usuario_id == usuario_logueado_id %}
+        <tr style="{{ 'background:#eff6ff; font-weight:600;' if es_yo }}">
+
+          <td class="ps-3 text-center">
+            {% if r.posicion == 1 %}
+            <span style="font-size:1.2rem;">🥇</span>
+            {% elif r.posicion == 2 %}
+            <span style="font-size:1.2rem;">🥈</span>
+            {% elif r.posicion == 3 %}
+            <span style="font-size:1.2rem;">🥉</span>
+            {% else %}
+            <span style="color:#888; font-size:0.9rem;">{{ r.posicion }}</span>
+            {% endif %}
+          </td>
+
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <img src="{{ url_for('static', filename=r.foto_path) }}"
+                style="width:32px; height:32px; border-radius:50%; object-fit:cover; background:#e8ecf0;" alt="">
+              <div>
+                <div>{{ r.usuario }}{% if es_yo %} <span style="font-size:0.72rem; color:#3b82f6;">(vos)</span>{% endif
+                  %}</div>
+                {% if r.sector %}
+                <div style="font-size:0.72rem; color:#aaa;">{{ r.sector }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+
+          <td class="text-center d-none d-md-table-cell text-muted">
+            {{ r.pronosticados or 0 }}
+          </td>
+
+          <td class="text-center d-none d-sm-table-cell">
+            {% if r.exactos %}
+            <span style="color:#16a34a; font-weight:600;">{{ r.exactos }}</span>
+            {% else %}
+            <span class="text-muted">0</span>
+            {% endif %}
+          </td>
+
+          <td class="text-center d-none d-sm-table-cell">
+            {% if r.aciertos %}
+            <span style="color:#f59e0b; font-weight:600;">{{ r.aciertos }}</span>
+            {% else %}
+            <span class="text-muted">0</span>
+            {% endif %}
+          </td>
+
+          <td class="text-center">
+            <span style="font-size:1rem; font-weight:700;
+                         color:{{ '#003263' if r.posicion <= 3 else '#333' }};">
+              {{ r.puntos or 0 }}
+            </span>
+          </td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-trophy" style="font-size:2.5rem; opacity:0.3;"></i>
+    <p class="mt-3 mb-0">
+      {% if sector_actual %}
+      No hay jugadores del sector <strong>{{ sector_actual }}</strong> con puntos todavía.
+      {% else %}
+      Todavía no hay puntos registrados para este torneo.
+      {% endif %}
+    </p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

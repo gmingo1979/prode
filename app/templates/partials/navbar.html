@@ -1,0 +1,139 @@
+{# =============================================================
+partials/navbar.html — Barra de navegación superior
+
+Incluido automáticamente desde base.html.
+No debe usarse directamente en páginas hijas.
+
+Variables de contexto utilizadas:
+- current_user : Usuario logueado (Flask-Login)
+- nombre_empresa : Nombre corto para el brand
+- menu_navbar : Dict {categoria: [Funcion, ...]} (si hay ítems en navbar)
+
+Bloques Jinja2 disponibles para sobreescribir desde páginas hijas:
+Ninguno — el navbar es fijo. Si necesitás agregar ítems,
+usá menu_navbar a través del sistema de roles/funciones.
+============================================================= #}
+
+<nav class="app-navbar" id="appNavbar">
+
+  {# ── Toggle sidebar ───────────────────────────────────────── #}
+  <button class="btn-sidebar-toggle" id="sidebarToggle" title="Contraer/expandir menú" aria-label="Toggle sidebar">
+    <i class="bi bi-list"></i>
+  </button>
+
+  {# ── Brand ────────────────────────────────────────────────── #}
+  <a href="{{ url_for('main_bp.index') }}" class="navbar-brand-text">
+    {{ nombre_empresa }}
+  </a>
+
+  {# ── Separador visual ─────────────────────────────────────── #}
+  <span class="navbar-divider d-none d-md-inline"></span>
+
+  {# ── Breadcrumb dinámico ──────────────────────────────────── #}
+  {# Cada página puede setear la variable `breadcrumbs` como lista de dicts:
+  [{"label": "Clientes", "url": url_for('clientes_bp.listado')}, {"label": "Nuevo"}]
+  Si no se define, solo muestra "Inicio" #}
+  <div class="navbar-breadcrumb d-none d-md-flex" aria-label="Miga de pan">
+    <a href="{{ url_for('main_bp.index') }}">Inicio</a>
+    {% if breadcrumbs is defined %}
+    {% for crumb in breadcrumbs %}
+    <span aria-hidden="true">/</span>
+    {% if crumb.url is defined and not loop.last %}
+    <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+    {% else %}
+    <span>{{ crumb.label }}</span>
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  {# ── Ítems de navbar del sistema de roles (opcional) ─────── #}
+  {% if menu_navbar %}
+  <div class="navbar-extra-items d-none d-lg-flex align-items-center gap-1 ms-2">
+    {% for categoria, funciones in menu_navbar.items() %}
+    {% for f in funciones %}
+    <a href="{{ url_for(f.endpoint) }}" class="nav-icon-btn" title="{{ f.nombre }}">
+      <i class="{{ f.icono or 'bi bi-circle' }}"></i>
+    </a>
+    {% endfor %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ── Lado derecho ─────────────────────────────────────────── #}
+  <div class="navbar-right">
+
+    {# Menú de usuario #}
+    <div class="dropdown">
+      <button class="user-avatar-btn" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false"
+        aria-label="Menú de usuario">
+        {# Avatar: intenta cargar la foto del usuario, si falla muestra iniciales #}
+        <div class="user-avatar" id="navUserAvatar">
+          {# Las iniciales se calculan desde apellido y nombre #}
+          {% if current_user.is_authenticated %}{{ current_user.nombre[0] | upper }}{{ current_user.apellido[0] | upper
+          }}{% endif %} </div>
+        <span class="user-name d-none d-sm-inline">
+          {{ current_user.apellido }}, {{ current_user.nombre }}
+        </span>
+        <i class="bi bi-chevron-down" style="font-size:0.65rem; color:#999;"></i>
+      </button>
+
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown"
+        style="min-width:200px; font-size:0.85rem;">
+        {# Info del usuario #}
+        <li>
+          <div class="px-3 py-2">
+            <div style="font-weight:600; font-size:0.85rem; color:#333;">
+              {{ current_user.nombre_completo }}
+            </div>
+            <div class="stat-label">
+              {{ current_user.email or current_user.username }}
+            </div>
+          </div>
+        </li>
+        <li>
+          <hr class="dropdown-divider my-1">
+        </li>
+
+        {# Roles del usuario (informativo) #}
+        {% if current_user.roles %}
+        <li>
+          <div class="px-3 py-1">
+            {% for rol in current_user.roles %}
+            <span style="
+                  display:inline-block;
+                  font-size:0.68rem;
+                  font-weight:600;
+                  background:var(--color-primary-light);
+                  color:var(--color-primary);
+                  padding:0.1em 0.5em;
+                  border-radius:10px;
+                  margin-right:2px;
+                ">{{ rol.nombre }}</span>
+            {% endfor %}
+          </div>
+        </li>
+        <li>
+          <hr class="dropdown-divider my-1">
+        </li>
+        {% endif %}
+
+        {# Acciones #}
+        <li>
+          <a class="dropdown-item" href="{{ url_for('usuarios_bp.perfil') }}">
+            <i class="bi bi-person me-2 text-muted"></i>Mi perfil
+          </a>
+        </li>
+        <li>
+          <hr class="dropdown-divider my-1">
+        </li>
+        <li>
+          <a class="dropdown-item text-danger" href="{{ url_for('main_bp.logout') }}">
+            <i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión
+          </a>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+</nav>

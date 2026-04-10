@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ titulo }}</h1>
+    <p class="page-subtitle">
+      {% if rol %}Editando <strong>{{ rol.nombre }}</strong>.
+      {% else %}Definí el nombre y las funciones que tendrá este rol.{% endif %}
+    </p>
+  </div>
+  <a href="{{ url_for('roles_bp.listado') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Volver
+  </a>
+</div>
+
+<form method="POST" novalidate>
+  {{ form.hidden_tag() }}
+
+  <div class="row g-3">
+
+    {# ── Datos del rol ── #}
+    <div class="col-12 col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-bottom py-3"
+             style="font-size:0.82rem; font-weight:600; color:#555;">
+          <i class="bi bi-shield-lock me-2 text-muted"></i>Datos del rol
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="form-label form-label-sm">
+                {{ form.nombre.label.text }} <span class="text-danger">*</span>
+              </label>
+              {{ form.nombre(class="form-control form-control-sm" + (" is-invalid" if form.nombre.errors else ""),
+                             placeholder="Ej: Administrador, Comercial, RRHH") }}
+              {% for e in form.nombre.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="col-12">
+              <label class="form-label form-label-sm">{{ form.descripcion.label.text }}</label>
+              {{ form.descripcion(class="form-control form-control-sm") }}
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {# Usuarios con este rol — solo en edición #}
+      {% if rol and rol.usuarios %}
+      <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-transparent border-bottom py-3"
+             style="font-size:0.82rem; font-weight:600; color:#555;">
+          <i class="bi bi-people me-2 text-muted"></i>
+          Usuarios con este rol ({{ rol.usuarios|length }})
+        </div>
+        <div class="card-body p-0">
+          {% for u in rol.usuarios %}
+          <div class="d-flex align-items-center gap-2 px-3 py-2"
+               style="border-bottom: 1px solid #f0f2f5; font-size:0.82rem;">
+            <img src="{{ url_for('static', filename=u.profile_pic) }}"
+                 onerror="this.src='{{ url_for('static', filename='img/default.jpg') }}'"
+                 style="width:26px; height:26px; border-radius:50%; object-fit:cover;">
+            <span>{{ u.nombre_completo }}</span>
+            {% if u.estado == 'Activo' %}
+              <span class="badge-estado-activo ms-auto">Activo</span>
+            {% else %}
+              <span class="badge-estado-bloqueado ms-auto">{{ u.estado }}</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    {# ── Funciones asignadas ── #}
+    <div class="col-12 col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
+          <div style="font-size:0.82rem; font-weight:600; color:#555;">
+            <i class="bi bi-toggles me-2 text-muted"></i>Funciones asignadas
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    style="font-size:0.75rem;" onclick="toggleTodos(true)">
+              Seleccionar todo
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    style="font-size:0.75rem;" onclick="toggleTodos(false)">
+              Limpiar
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+
+          {% if funciones_agrupadas %}
+            {% for categoria, funciones in funciones_agrupadas.items() %}
+
+            {# Categoría con su propio toggle #}
+            <div class="mb-3">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase;
+                             letter-spacing:0.08em; color:#888;">
+                  {{ categoria }}
+                </span>
+                <div style="flex:1; height:1px; background:#e8ecf0;"></div>
+                <button type="button"
+                        class="btn btn-sm"
+                        style="font-size:0.68rem; padding:0.1em 0.5em; color:#aaa; border:none;"
+                        onclick="toggleCategoria('cat_{{ loop.index }}')">
+                  toggle
+                </button>
+              </div>
+
+              <div class="row g-2" id="cat_{{ loop.index }}">
+                {% for f in funciones %}
+                <div class="col-12 col-sm-6">
+                  <div class="form-check d-flex align-items-start gap-2"
+                       style="border:1px solid #f0f2f5; border-radius:6px; padding:0.5rem 0.75rem;
+                              background: {% if f.id in ids_asignados %}#eef3fa{% else %}#fff{% endif %};"
+                       id="item_{{ f.id }}">
+                    <input class="form-check-input funcion-check mt-0"
+                           type="checkbox"
+                           name="funciones"
+                           value="{{ f.id }}"
+                           id="fn_{{ f.id }}"
+                           {% if f.id in ids_asignados %}checked{% endif %}
+                           onchange="resaltarItem(this)">
+                    <label class="form-check-label w-100" for="fn_{{ f.id }}"
+                           style="cursor:pointer;">
+                      <div class="d-flex align-items-center gap-1">
+                        {% if f.icono %}
+                          <i class="{{ f.icono }}" style="font-size:0.8rem; color:var(--color-primary); width:14px;"></i>
+                        {% endif %}
+                        <span style="font-size:0.82rem; font-weight:500;">{{ f.nombre }}</span>
+                        {% if f.es_menu %}
+                          <i class="bi bi-layout-sidebar ms-auto"
+                             style="font-size:0.65rem; color:#aaa;" title="Aparece en menú"></i>
+                        {% endif %}
+                      </div>
+                      {% if f.descripcion %}
+                        <div style="font-size:0.72rem; color:#aaa; margin-top:0.1rem;">
+                          {{ f.descripcion }}
+                        </div>
+                      {% endif %}
+                    </label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            {% endfor %}
+          {% else %}
+            <div class="text-center text-muted py-4" style="font-size:0.85rem;">
+              No hay funciones creadas todavía.
+              <a href="{{ url_for('funciones_bp.nueva') }}">Creá la primera función</a>.
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="d-flex gap-2 mt-3">
+    <button type="submit" class="btn btn-sm btn-primary-app">
+      <i class="bi bi-check-lg me-1"></i>
+      {{ 'Guardar cambios' if rol else 'Crear rol' }}
+    </button>
+    <a href="{{ url_for('roles_bp.listado') }}" class="btn btn-sm btn-outline-secondary">
+      Cancelar
+    </a>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Resaltar item al marcar/desmarcar
+  function resaltarItem(checkbox) {
+    const item = document.getElementById('item_' + checkbox.value);
+    item.style.background = checkbox.checked ? '#eef3fa' : '#fff';
+  }
+
+  // Seleccionar o limpiar todos los checkboxes
+  function toggleTodos(marcar) {
+    document.querySelectorAll('.funcion-check').forEach(cb => {
+      cb.checked = marcar;
+      resaltarItem(cb);
+    });
+  }
+
+  // Toggle de una categoría específica
+  function toggleCategoria(catId) {
+    const checks = document.querySelectorAll('#' + catId + ' .funcion-check');
+    const hayAlguno = Array.from(checks).some(cb => cb.checked);
+    checks.forEach(cb => {
+      cb.checked = !hayAlguno;
+      resaltarItem(cb);
+    });
+  }
+</script>
+{% endblock %}

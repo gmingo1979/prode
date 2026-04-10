@@ -1,0 +1,36 @@
+{#
+  macros/prode_equipo.html
+  Macro reutilizable para mostrar un equipo con su bandera (flag-icons).
+
+  Uso:
+    {% from 'prode/macros/equipo.html' import bandera, equipo_badge %}
+
+    {{ bandera(e) }}                       → solo la bandera
+    {{ equipo_badge(e) }}                  → bandera + nombre
+    {{ equipo_badge(e, bold=true) }}       → bandera + nombre en negrita
+    {{ equipo_badge(e, size='lg') }}       → bandera más grande
+#}
+
+{% macro bandera(equipo, size='') %}
+  {% if equipo and equipo.codigo_iso %}
+    <span class="fi fi-{{ equipo.codigo_iso }}
+          {%- if size == 'lg' %} fi-lg{% elif size == 'xl' %} fi-xl{% endif %}"
+          title="{{ equipo.nombre }}"
+          style="border-radius:2px; flex-shrink:0;"></span>
+  {% elif equipo %}
+    <span style="display:inline-block; width:{% if size == 'lg' %}24px{% elif size == 'xl' %}32px{% else %}16px{% endif %};
+                 height:{% if size == 'lg' %}18px{% elif size == 'xl' %}24px{% else %}12px{% endif %};
+                 background:#e2e8f0; border-radius:2px; flex-shrink:0;"
+          title="{{ equipo.nombre }}"></span>
+  {% endif %}
+{% endmacro %}
+
+{% macro equipo_badge(equipo, bold=false, size='', reverse=false) %}
+  {% if equipo %}
+    <span class="d-inline-flex align-items-center gap-1"
+          style="{% if reverse %}flex-direction:row-reverse;{% endif %}">
+      {{ bandera(equipo, size=size) }}
+      <span {% if bold %}style="font-weight:600;"{% endif %}>{{ equipo.nombre }}</span>
+    </span>
+  {% endif %}
+{% endmacro %}

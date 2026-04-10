@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ titulo }}</h1>
+  </div>
+  <a href="{{ url_for('prode_bp.admin_torneo_editar', id=torneo.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Volver a {{ torneo.nombre }}
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width:480px;">
+  <div class="card-body">
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label form-label-sm">Nombre <span class="text-danger">*</span></label>
+        <input type="text" name="nombre" class="form-control form-control-sm" value="{{ equipo.nombre if equipo }}"
+          placeholder="Ej: Argentina, Real Madrid..." required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label form-label-sm">Grupo</label>
+        <input type="text" name="grupo" class="form-control form-control-sm" value="{{ equipo.grupo if equipo }}"
+          placeholder="Ej: A, B, C..." maxlength="5" style="text-transform:uppercase;">
+        <div class="form-text">Opcional. Dejar vacío si el torneo no tiene grupos.</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label form-label-sm">Código ISO del país</label>
+        <div class="input-group input-group-sm">
+          <input type="text" name="codigo_iso" class="form-control form-control-sm" id="inputIso"
+            value="{{ equipo.codigo_iso if equipo }}" placeholder="ar, br, fr, gb-sct..." maxlength="6"
+            style="text-transform:lowercase; max-width:120px;">
+          <span class="input-group-text" id="prevBandera" style="font-size:1.2rem; min-width:44px;">
+            {% if equipo and equipo.codigo_iso %}
+            <span class="fi fi-{{ equipo.codigo_iso }}"></span>
+            {% else %}
+            🏳
+            {% endif %}
+          </span>
+        </div>
+        <div class="form-text">
+          Código ISO 3166-1 alpha-2 en minúsculas (ej: <code>ar</code>, <code>br</code>, <code>gb-sct</code> para
+          Escocia).
+          <a href="https://flagicons.lipis.dev/" target="_blank">Ver códigos disponibles</a>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label form-label-sm">Escudo</label>
+        <input type="text" name="escudo_url" class="form-control form-control-sm" id="inputEscudo"
+          value="{{ equipo.escudo_url if equipo }}" placeholder="prode/escudos/ar.png">
+        <div class="form-text">
+          Ruta relativa dentro de <code>static/</code> (ej: <code>prode/escudos/ar.png</code>).
+          Se completa automáticamente al correr <code>scripts/descargar_escudos.py</code>.
+        </div>
+        <div class="mt-2 text-center" id="previewEscudo"
+          style="{{ '' if (equipo and equipo.escudo_url) else 'display:none;' }}">
+          <img id="imgEscudo"
+            src="{{ url_for('static', filename=equipo.escudo_url) if (equipo and equipo.escudo_url) else '' }}"
+            alt="escudo" style="width:48px; height:48px; object-fit:contain;">
+        </div>
+      </div>
+      <div class="text-end">
+        <button type="submit" class="btn btn-sm btn-primary-app">
+          <i class="bi bi-floppy me-1"></i>Guardar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const inpIso = document.getElementById('inputIso');
+  const prevBand = document.getElementById('prevBandera');
+  inpIso.addEventListener('input', function () {
+    const iso = this.value.trim().toLowerCase();
+    prevBand.innerHTML = iso ? `<span class="fi fi-${iso}"></span>` : '🏳';
+  });
+
+  const inp = document.getElementById('inputEscudo');
+  const prev = document.getElementById('previewEscudo');
+  const img = document.getElementById('imgEscudo');
+
+  function actualizarPreview() {
+    const val = inp.value.trim();
+    if (val) {
+      img.src = val.startsWith('http') ? val : '/static/' + val;
+      prev.style.display = 'block';
+    } else {
+      prev.style.display = 'none';
+    }
+  }
+  inp.addEventListener('input', actualizarPreview);
+</script>
+{% endblock %}

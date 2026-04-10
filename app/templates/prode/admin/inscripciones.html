@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Inscripciones</h1>
+    <p class="page-subtitle">Aprobá o rechazá solicitudes de participantes.</p>
+  </div>
+  <a href="{{ url_for('prode_bp.admin_torneos') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Torneos
+  </a>
+</div>
+
+{# Filtro por torneo #}
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  <a href="{{ url_for('prode_bp.admin_inscripciones') }}"
+    class="btn btn-sm {{ 'btn-primary-app' if not torneo_id_sel else 'btn-outline-secondary' }}">
+    Todos
+  </a>
+  {% for t in torneos %}
+  <a href="{{ url_for('prode_bp.admin_inscripciones', torneo_id=t.id) }}"
+    class="btn btn-sm {{ 'btn-primary-app' if torneo_id_sel == t.id else 'btn-outline-secondary' }}">
+    {{ t.nombre }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if inscripciones %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+      <thead>
+        <tr style="background:#f8fafc; font-size:0.72rem; text-transform:uppercase;
+                   letter-spacing:0.05em; color:#888;">
+          <th class="ps-3 py-2">Jugador</th>
+          <th class="d-none d-md-table-cell">Torneo</th>
+          <th class="text-center">Solicitado</th>
+          <th class="text-center">Estado</th>
+          <th class="text-end pe-3">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for insc in inscripciones %}
+        <tr>
+          <td class="ps-3">
+            <div class="d-flex align-items-center gap-2">
+              <img src="{{ url_for('static', filename=insc.usuario.profile_pic) }}"
+                style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
+              <div>
+                <div style="font-weight:500;">{{ insc.usuario.nombre_completo }}</div>
+                <div style="font-size:0.72rem; color:#aaa;">{{ insc.usuario.email or insc.usuario.username }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="d-none d-md-table-cell text-muted">{{ insc.torneo.nombre }}</td>
+          <td class="text-center text-muted" style="font-size:0.8rem;">
+            {{ insc.created_at.strftime('%d/%m/%Y') }}
+          </td>
+          <td class="text-center">
+            {% if insc.estado == 'aprobado' %}
+            <span class="badge-estado-activo">Aprobado</span>
+            {% elif insc.estado == 'rechazado' %}
+            <span class="badge-estado-inactivo">Rechazado</span>
+            {% else %}
+            <span class="badge" style="background:#fef9c3; color:#854d0e; font-size:0.72rem;">
+              Pendiente
+            </span>
+            {% endif %}
+          </td>
+          <td class="text-end pe-3">
+            <div class="d-flex gap-1 justify-content-end">
+              {% if insc.estado != 'aprobado' %}
+              <form method="POST" action="{{ url_for('prode_bp.admin_inscripcion_aprobar', id=insc.id) }}"
+                class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2 " title="Aprobar">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+              </form>
+              {% endif %}
+              {% if insc.estado != 'rechazado' %}
+              <form method="POST" action="{{ url_for('prode_bp.admin_inscripcion_rechazar', id=insc.id) }}"
+                class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 " title="Rechazar">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-person-check" style="font-size:2.5rem; opacity:0.3;"></i>
+    <p class="mt-3 mb-0">No hay inscripciones para mostrar.</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

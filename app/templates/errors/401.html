@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width:520px; margin:4rem auto; text-align:center;">
+
+  <div style="font-size:5rem; font-weight:800; color:#e8ecf0; line-height:1; margin-bottom:0.5rem;">
+    401
+  </div>
+
+  <h1 style="font-size:1.1rem; font-weight:600; color:#1a1a2e; margin-bottom:0.5rem;">
+    Sesión no iniciada
+  </h1>
+
+  <p style="font-size:0.85rem; color:#888; margin-bottom:2rem;">
+    Necesitás iniciar sesión para acceder a esta pantalla.
+  </p>
+
+  <div class="d-flex gap-2 justify-content-center">
+    <a href="{{ url_for('auth_bp.login') }}" class="btn btn-sm btn-primary-app">
+      <i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión
+    </a>
+  </div>
+
+</div>
+
+{% endblock %}

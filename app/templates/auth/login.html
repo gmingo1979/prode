@@ -1,0 +1,132 @@
+{# app/templates/auth/login.html — No extiende base.html (usuario no logueado) #}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iniciar sesión | {{ nombre_empresa }}</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+</head>
+
+<body class="body-loginlogout">
+
+<div class="login-card">
+
+  {# ── Logo ── #}
+  <div class="login-logo">
+    <img src="{{ url_for('static', filename='img/logo.png') }}"
+         onerror="this.style.display='none'"
+         alt="{{ nombre_empresa }}">
+  </div>
+
+  <div class="login-titulo">{{ nombre_aplicacion }}</div>
+  <div class="login-subtitulo">Iniciá sesión para continuar</div>
+
+  {# ── Flash messages ── #}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show py-2"
+             role="alert" style="font-size:0.83rem;">
+          {{ message | safe }}
+          <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {# ── Botón Google ── #}
+  <a href="{{ url_for('auth_google_bp.login') }}" class="btn-microsoft">
+    <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.2 17.7 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 7.1-10 7.1-17z"/>
+      <path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.9-6.1z"/>
+      <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.3 0-11.6-3.7-13.5-9.3l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+    </svg>
+    Continuar con Google
+  </a>
+
+  {# ── Separador ── #}
+  <div class="login-divider">o ingresá con tu cuenta</div>
+
+  {# ── Formulario local ── #}
+  <form method="POST" action="{{ url_for('auth_bp.login') }}" novalidate>
+    <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+
+    <div class="mb-3">
+      <label for="username" class="form-label" style="font-size:0.82rem; font-weight:500; color:#555;">
+        Usuario o email
+      </label>
+      <div class="input-group">
+        <span class="input-group-text" style="background:#f8fafc; border-right:none;">
+          <i class="bi bi-person" style="color:#888;"></i>
+        </span>
+        <input type="text" id="username" name="username"
+               class="form-control" style="border-left:none;"
+               placeholder="usuario o correo@mail.com"
+               autocomplete="username" autofocus required>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label for="password" class="form-label" style="font-size:0.82rem; font-weight:500; color:#555;">
+        Contraseña
+      </label>
+      <div class="input-group">
+        <span class="input-group-text" style="background:#f8fafc; border-right:none;">
+          <i class="bi bi-lock" style="color:#888;"></i>
+        </span>
+        <input type="password" id="password" name="password"
+               class="form-control" style="border-left:none;"
+               placeholder="••••••••" autocomplete="current-password" required>
+        <button type="button" class="input-group-text"
+                style="background:#f8fafc; cursor:pointer; border-left:none;"
+                onclick="togglePassword()" tabindex="-1" title="Mostrar/ocultar contraseña">
+          <i class="bi bi-eye" id="iconPassword" style="color:#888;"></i>
+        </button>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-ingresar w-100">
+      <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
+    </button>
+  </form>
+
+  {# ── Link a registro ── #}
+  <div class="text-center mt-3" style="font-size:0.8rem; color:#999;">
+    ¿No tenés cuenta?
+    <a href="{{ url_for('auth_bp.registro') }}" style="color:var(--color-primary); font-weight:500;">
+      Registrate acá
+    </a>
+  </div>
+
+  {# ── Footer ── #}
+  <div class="login-footer">
+    © {{ ano_copyright }} {{ nombre_empresa_xl }}
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  function togglePassword() {
+    const input = document.getElementById('password');
+    const icon  = document.getElementById('iconPassword');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'bi bi-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'bi bi-eye';
+    }
+  }
+</script>
+
+</body>
+</html>

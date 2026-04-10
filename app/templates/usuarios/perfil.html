@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Mi perfil</h1>
+    <p class="page-subtitle">Editá tus datos personales y contraseña.</p>
+  </div>
+</div>
+
+<form method="POST" enctype="multipart/form-data" novalidate>
+  {{ form.hidden_tag() }}
+
+  <div class="row g-3">
+
+    {# ── Columna izquierda ── #}
+    <div class="col-12 col-lg-8">
+
+      {# Datos personales #}
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-bottom py-3"
+          style="font-size:0.82rem; font-weight:600; color:#555;">
+          <i class="bi bi-person me-2 text-muted"></i>Datos personales
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label form-label-sm">Apellido <span class="text-danger">*</span></label>
+              {{ form.apellido(class="form-control form-control-sm" + (" is-invalid" if form.apellido.errors else ""),
+              placeholder="Apellido") }}
+              {% for e in form.apellido.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-6">
+              <label class="form-label form-label-sm">Nombre <span class="text-danger">*</span></label>
+              {{ form.nombre(class="form-control form-control-sm" + (" is-invalid" if form.nombre.errors else ""),
+              placeholder="Nombre") }}
+              {% for e in form.nombre.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-6">
+              <label class="form-label form-label-sm">Usuario <span class="text-danger">*</span></label>
+              {{ form.username(class="form-control form-control-sm" + (" is-invalid" if form.username.errors else ""),
+              placeholder="usuario.apellido") }}
+              {% for e in form.username.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">Email</label>
+              {{ form.email(class="form-control form-control-sm" + (" is-invalid" if form.email.errors else ""),
+              placeholder="correo@dominio.com") }}
+              {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Cambio de contraseña — oculto para usuarios Google #}
+      {% if current_user.auth_origen != 'Google' %}
+      <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-transparent border-bottom py-3"
+          style="font-size:0.82rem; font-weight:600; color:#555;">
+          <i class="bi bi-lock me-2 text-muted"></i>Cambiar contraseña
+          <span class="text-muted fw-normal" style="font-size:0.75rem;">— dejá en blanco para no cambiarla</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-sm-4">
+              <label class="form-label form-label-sm">Contraseña actual</label>
+              {{ form.password_actual(class="form-control form-control-sm" + (" is-invalid" if form.password_actual.errors else ""),
+              placeholder="••••••••", autocomplete="current-password") }}
+              {% for e in form.password_actual.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12 col-sm-4">
+              <label class="form-label form-label-sm">Nueva contraseña</label>
+              {{ form.password_nuevo(class="form-control form-control-sm" + (" is-invalid" if form.password_nuevo.errors else ""),
+              id="inputPasswordNuevo", placeholder="Mínimo 8 caracteres", autocomplete="new-password") }}
+              {% for e in form.password_nuevo.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+
+              <div id="pwd-requisitos" class="mt-2" style="display:none; font-size:0.75rem; line-height:1.8;">
+                <span class="req" data-req="len"><i class="bi bi-circle text-secondary me-1"></i>Mínimo 8 caracteres</span><br>
+                <span class="req" data-req="upper"><i class="bi bi-circle text-secondary me-1"></i>Una mayúscula (A-Z)</span><br>
+                <span class="req" data-req="lower"><i class="bi bi-circle text-secondary me-1"></i>Una minúscula (a-z)</span><br>
+                <span class="req" data-req="digit"><i class="bi bi-circle text-secondary me-1"></i>Un número (0-9)</span><br>
+                <span class="req" data-req="special"><i class="bi bi-circle text-secondary me-1"></i>Un carácter especial (!@#$…)</span>
+              </div>
+            </div>
+            <div class="col-12 col-sm-4">
+              <label class="form-label form-label-sm">Confirmar nueva</label>
+              {{ form.password_confirmar(class="form-control form-control-sm" + (" is-invalid" if form.password_confirmar.errors else ""),
+              placeholder="Repetir", autocomplete="new-password") }}
+              {% for e in form.password_confirmar.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="card border-0 shadow-sm mt-3">
+        <div class="card-body text-muted" style="font-size:0.83rem;">
+          <i class="bi bi-google me-2"></i>Tu cuenta usa autenticación de Google. La contraseña se gestiona desde tu cuenta de Google.
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    {# ── Columna derecha ── #}
+    <div class="col-12 col-lg-4">
+
+      {# Foto de perfil #}
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-bottom py-3"
+          style="font-size:0.82rem; font-weight:600; color:#555;">
+          <i class="bi bi-image me-2 text-muted"></i>Foto de perfil
+        </div>
+        <div class="card-body text-center">
+
+          <div class="mb-3" style="position:relative; display:inline-block;">
+            <img id="fotoPreview"
+              src="{{ url_for('static', filename=current_user.profile_pic) }}"
+              onerror="this.src='{{ url_for('static', filename='img/default.svg') }}'"
+              alt="Foto de perfil"
+              style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:3px solid #e8ecf0; display:block; margin:0 auto;">
+            <label for="foto" style="
+              position:absolute; bottom:4px; right:4px;
+              width:28px; height:28px; border-radius:50%;
+              background:var(--color-primary); color:white;
+              display:flex; align-items:center; justify-content:center;
+              cursor:pointer; font-size:0.75rem;
+              box-shadow:0 1px 4px rgba(0,0,0,0.2);" title="Cambiar foto">
+              <i class="bi bi-camera"></i>
+            </label>
+          </div>
+
+          {{ form.foto(id="foto", class="d-none", accept=".jpg,.jpeg,.png,.webp") }}
+          {% for e in form.foto.errors %}
+          <div class="text-danger" style="font-size:0.78rem;">{{ e }}</div>
+          {% endfor %}
+
+          <p style="font-size:0.72rem; color:#aaa; margin-top:0.5rem; margin-bottom:0;">
+            JPG o PNG · Se recortará en cuadrado
+          </p>
+
+          <button type="submit" form="form-eliminar-foto"
+            class="btn btn-sm btn-outline-danger mt-2"
+            style="font-size:0.75rem;"
+            onclick="return confirm('¿Eliminar la foto de perfil?')">
+            <i class="bi bi-trash me-1"></i>Quitar foto
+          </button>
+
+        </div>
+      </div>
+
+      {# Info de cuenta (solo lectura) #}
+      <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-transparent border-bottom py-3"
+          style="font-size:0.82rem; font-weight:600; color:#555;">
+          <i class="bi bi-info-circle me-2 text-muted"></i>Cuenta
+        </div>
+        <div class="card-body" style="font-size:0.82rem;">
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Estado</span>
+            {% if current_user.estado == 'Activo' %}
+              <span class="badge-estado-activo">Activo</span>
+            {% elif current_user.estado == 'Bloqueado' %}
+              <span class="badge-estado-bloqueado">Bloqueado</span>
+            {% else %}
+              <span class="badge-estado-inactivo">Retirado</span>
+            {% endif %}
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Autenticación</span>
+            <span>
+              {% if current_user.auth_origen == 'Google' %}
+                <svg width="13" height="13" viewBox="0 0 48 48" style="vertical-align:middle; margin-right:3px;">
+                  <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.2 17.7 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 7.1-10 7.1-17z"/>
+                  <path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.9-6.1z"/>
+                  <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.3 0-11.6-3.7-13.5-9.3l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+                </svg>
+                Google
+              {% else %}
+                <i class="bi bi-person-lock me-1"></i>Local
+              {% endif %}
+            </span>
+          </div>
+          {% if current_user.roles %}
+          <div class="d-flex justify-content-between align-items-start">
+            <span class="text-muted">Roles</span>
+            <div class="text-end">
+              {% for rol in current_user.roles %}
+              <span style="display:inline-block; font-size:0.68rem; font-weight:600;
+                background:var(--color-primary-light); color:var(--color-primary);
+                padding:0.1em 0.5em; border-radius:10px; margin:1px;">{{ rol.nombre }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  {# Botones #}
+  <div class="d-flex gap-2 mt-3">
+    <button type="submit" class="btn btn-sm btn-primary-app">
+      <i class="bi bi-check-lg me-1"></i>Guardar cambios
+    </button>
+    <a href="{{ url_for('main_bp.index') }}" class="btn btn-sm btn-outline-secondary">
+      Cancelar
+    </a>
+  </div>
+
+</form>
+
+{# Form externo para eliminar foto #}
+<form id="form-eliminar-foto" method="POST"
+  action="{{ url_for('usuarios_bp.eliminar_foto_propia') }}"
+  style="display:none;">
+  {{ form.hidden_tag() }}
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Preview de foto
+  document.getElementById('foto').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert('Solo se aceptan archivos JPG, PNG o WEBP.');
+      this.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('El archivo es demasiado grande. Máximo 5 MB.');
+      this.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => { document.getElementById('fotoPreview').src = e.target.result; };
+    reader.readAsDataURL(file);
+  });
+
+  // Indicador de requisitos de contraseña
+  (function () {
+    const input = document.getElementById('inputPasswordNuevo');
+    if (!input) return;
+    const panel = document.getElementById('pwd-requisitos');
+    const requisitos = {
+      len:     { check: v => v.length >= 8 },
+      upper:   { regex: /[A-Z]/ },
+      lower:   { regex: /[a-z]/ },
+      digit:   { regex: /[0-9]/ },
+      special: { regex: /[^A-Za-z0-9]/ },
+    };
+    function evaluar(valor) {
+      panel.style.display = valor.length > 0 ? 'block' : 'none';
+      Object.entries(requisitos).forEach(([key, r]) => {
+        const ok = r.check ? r.check(valor) : r.regex.test(valor);
+        const span = panel.querySelector(`[data-req="${key}"]`);
+        const icono = span.querySelector('i');
+        if (ok) {
+          icono.className = 'bi bi-check-circle-fill me-1';
+          icono.style.color = '#198754';
+          span.style.color  = '#198754';
+        } else {
+          icono.className = 'bi bi-circle me-1';
+          icono.style.color = '';
+          span.style.color  = '';
+        }
+      });
+    }
+    input.addEventListener('input', () => evaluar(input.value));
+    if (input.value) evaluar(input.value);
+  })();
+</script>
+{% endblock %}

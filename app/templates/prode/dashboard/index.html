@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% from 'prode/macros/equipo.html' import bandera %}
+{% block content %}
+
+{% set meses_es = ['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'] %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Mi dashboard</h1>
+    <p class="page-subtitle">{{ torneo.nombre }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('prode_bp.pronosticos', torneo_id=torneo.id) }}" class="btn btn-sm btn-primary-app">
+      <i class="bi bi-pencil-square me-1"></i>Pronósticos
+    </a>
+    <a href="{{ url_for('prode_bp.index') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+</div>
+
+{# ── Fila 1: Posición + Puntos + Racha + Pendientes ── #}
+<div class="row g-3 mb-3">
+
+  {# Posición #}
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-3 d-flex flex-column justify-content-between">
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#aaa;">
+          Mi posición
+        </div>
+        {% if mi_posicion %}
+        <div class="d-flex align-items-end gap-1 mt-2">
+          <span style="font-size:2.4rem; font-weight:800; color:#003263; line-height:1;">
+            {% if mi_posicion.posicion == 1 %}🥇
+            {% elif mi_posicion.posicion == 2 %}🥈
+            {% elif mi_posicion.posicion == 3 %}🥉
+            {% else %}{{ mi_posicion.posicion }}°{% endif %}
+          </span>
+          <span style="font-size:0.78rem; color:#aaa; margin-bottom:4px;">
+            de {{ ranking_total }}
+          </span>
+        </div>
+        {% if mi_posicion.sector %}
+        <div style="font-size:0.72rem; color:#888; margin-top:4px;">{{ mi_posicion.sector }}</div>
+        {% endif %}
+        {% else %}
+        <div style="font-size:1.5rem; color:#ccc; margin-top:8px;">—</div>
+        <div style="font-size:0.72rem; color:#bbb;">Sin puntos aún</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Puntos #}
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-3 d-flex flex-column justify-content-between">
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#aaa;">
+          Puntos totales
+        </div>
+        <div style="font-size:2.4rem; font-weight:800; color:#003263; line-height:1; margin-top:8px;">
+          {{ puntos_totales }}
+        </div>
+        <div style="font-size:0.72rem; color:#888; margin-top:4px;">
+          {{ exactos }} exactos · {{ aciertos }} aciertos
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Racha #}
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-3 d-flex flex-column justify-content-between">
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#aaa;">
+          Racha actual
+        </div>
+        {% if racha_actual > 0 %}
+        <div class="d-flex align-items-center gap-2 mt-2">
+          <span style="font-size:2rem; line-height:1;">
+            {{ '🔥' if racha_tipo == 'buena' else '❄️' }}
+          </span>
+          <div>
+            <div style="font-size:1.6rem; font-weight:800;
+                          color:{{ '#16a34a' if racha_tipo == 'buena' else '#dc2626' }}; line-height:1;">
+              {{ racha_actual }}
+            </div>
+            <div style="font-size:0.7rem; color:#888;">
+              {{ 'acertados' if racha_tipo == 'buena' else 'fallados' }}
+            </div>
+          </div>
+        </div>
+        {% set rmb = racha_max_buena if racha_max_buena is defined else 0 %}
+        {% if rmb > racha_actual and racha_tipo == 'buena' %}
+        <div style="font-size:0.7rem; color:#aaa; margin-top:6px;">
+          Récord: 🔥 {{ rmb }}
+        </div>
+        {% elif rmb > 0 %}
+        <div style="font-size:0.7rem; color:#aaa; margin-top:6px;">
+          Mejor racha: 🔥 {{ rmb }}
+        </div>
+        {% endif %}
+        {% else %}
+        <div style="font-size:1.5rem; color:#ccc; margin-top:8px;">—</div>
+        <div style="font-size:0.72rem; color:#bbb;">Sin datos aún</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Pronósticos #}
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-3 d-flex flex-column justify-content-between">
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#aaa;">
+          Pronósticos
+        </div>
+        <div style="font-size:2.4rem; font-weight:800; color:#003263; line-height:1; margin-top:8px;">
+          {{ con_pronostico }}
+          <span style="font-size:1rem; color:#aaa; font-weight:400;">/ {{ total_cerrados }}</span>
+        </div>
+        <div style="font-size:0.72rem; color:#888; margin-top:4px;">
+          {% if pendientes | length > 0 %}
+          <span style="color:#dc2626;">{{ pendientes | length }} sin pronosticar</span>
+          {% else %}
+          <span style="color:#16a34a;">Al día ✓</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ── Fila 2: Próximo partido + Urgentes ── #}
+<div class="row g-3 mb-3">
+
+  {# Próximo partido con cuenta regresiva #}
+  <div class="col-12 col-md-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-3">
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em;
+                    color:#aaa; margin-bottom:12px;">
+          Próximo partido
+        </div>
+
+        {% if proximo %}
+        {% set fh_iso = proximo.fecha_hora.isoformat() %}
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+
+          {# Equipos #}
+          <div class="d-flex align-items-center gap-2 flex-grow-1">
+
+            {# Local #}
+            <div class="text-end" style="flex:1;">
+              <div style="font-weight:600; font-size:0.9rem;">{{ proximo.equipo_local.nombre }}</div>
+              {% if proximo.equipo_local.escudo_url %}
+              <img src="{{ url_for('static', filename=proximo.equipo_local.escudo_url) }}"
+                style="width:32px; height:32px; object-fit:contain; margin-top:4px;" alt="">
+              {% else %}
+              {{ bandera(proximo.equipo_local, size='lg') }}
+              {% endif %}
+            </div>
+
+            <div style="font-size:1.1rem; color:#ccc; font-weight:300; padding:0 4px;">vs</div>
+
+            {# Visitante #}
+            <div class="text-start" style="flex:1;">
+              {% if proximo.equipo_visitante.escudo_url %}
+              <img src="{{ url_for('static', filename=proximo.equipo_visitante.escudo_url) }}"
+                style="width:32px; height:32px; object-fit:contain; margin-bottom:4px;" alt="">
+              {% else %}
+              {{ bandera(proximo.equipo_visitante, size='lg') }}
+              {% endif %}
+              <div style="font-weight:600; font-size:0.9rem;">{{ proximo.equipo_visitante.nombre }}</div>
+            </div>
+
+          </div>
+
+          {# Cuenta regresiva compacta #}
+          <div class="text-center">
+            <div style="font-size:0.65rem; color:#aaa; text-transform:uppercase;
+                        letter-spacing:0.06em; margin-bottom:4px;">faltan</div>
+            <div class="d-flex gap-2 align-items-center justify-content-center" id="cd-proximo"
+              data-target="{{ fh_iso }}">
+              {% for u in [('cdp-h','hs'),('cdp-m','min'),('cdp-s','seg')] %}
+              <div style="text-align:center;">
+                <div id="{{ u[0] }}" style="font-size:1.4rem; font-weight:800;
+                     color:#003263; line-height:1; font-variant-numeric:tabular-nums;">--</div>
+                <div style="font-size:0.6rem; color:#bbb; text-transform:uppercase;">{{ u[1] }}</div>
+              </div>
+              {% if not loop.last %}
+              <div style="color:#ddd; font-size:1.1rem; align-self:flex-start; margin-top:2px;">:</div>
+              {% endif %}
+              {% endfor %}
+            </div>
+            <div style="font-size:0.7rem; color:#aaa; margin-top:6px;">
+              {{ proximo.fecha_hora.strftime('%d') }}/{{ proximo.fecha_hora.strftime('%m') }}
+              · {{ proximo.fecha_hora.strftime('%H:%M') }}hs
+            </div>
+          </div>
+
+        </div>
+
+        {# ¿Ya pronostiqué este partido? #}
+        {% set mi_pron_prox = mis_pronosticos.get(proximo.id) if mis_pronosticos is defined else none %}
+        <div class="mt-3 pt-3" style="border-top:1px solid #f1f5f9;">
+          {% if proximo.id in mis_pronosticos %}
+          {% set pp = mis_pronosticos[proximo.id] %}
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-check-circle-fill text-success" style="font-size:0.9rem;"></i>
+            <span style="font-size:0.82rem; color:#555;">
+              Tu pronóstico: <strong>{{ pp.goles_local }} – {{ pp.goles_visitante }}</strong>
+            </span>
+            <a href="{{ url_for('prode_bp.pronosticos', torneo_id=torneo.id) }}"
+              style="font-size:0.78rem; color:#003263; margin-left:auto;">Editar</a>
+          </div>
+          {% else %}
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-circle-fill" style="color:#f59e0b; font-size:0.9rem;"></i>
+            <span style="font-size:0.82rem; color:#555;">Todavía no pronosticaste este partido.</span>
+            <a href="{{ url_for('prode_bp.pronosticos', torneo_id=torneo.id) }}"
+              class="btn btn-xs btn-primary-app ms-auto" style="font-size:0.75rem; padding:2px 10px;">Pronosticar</a>
+          </div>
+          {% endif %}
+        </div>
+
+        {% else %}
+        <div class="text-center text-muted py-3">
+          <i class="bi bi-calendar-check" style="font-size:1.8rem; opacity:0.3;"></i>
+          <p class="mt-2 mb-0" style="font-size:0.85rem;">No hay más partidos programados.</p>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+  {# Próximos a bloquearse #}
+  <div class="col-12 col-md-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#aaa;">
+            Se bloquean pronto
+          </div>
+          {% if urgentes %}
+          <span class="badge rounded-pill" style="background:#fee2e2; color:#991b1b; font-size:0.68rem;">
+            {{ urgentes | length }} sin pronosticar
+          </span>
+          {% endif %}
+        </div>
+
+        {% if urgentes %}
+        <div class="d-flex flex-column gap-2">
+          {% for p in urgentes[:5] %}
+          <div class="d-flex align-items-center gap-2 rounded p-2"
+            style="background:#fef9c3; border:1px solid #fde047;">
+            {% if p.equipo_local.escudo_url %}
+            <img src="{{ url_for('static', filename=p.equipo_local.escudo_url) }}"
+              style="width:18px; height:18px; object-fit:contain;" alt="">
+            {% else %}{{ bandera(p.equipo_local) }}{% endif %}
+            <span style="font-size:0.78rem; font-weight:500; flex:1;">
+              {{ p.equipo_local.nombre }} vs {{ p.equipo_visitante.nombre }}
+            </span>
+            <span style="font-size:0.7rem; color:#854d0e; white-space:nowrap;">
+              {{ p.fecha_hora.strftime('%d/%m %H:%M') }}hs
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+        <a href="{{ url_for('prode_bp.pronosticos', torneo_id=torneo.id) }}" class="btn btn-sm btn-warning w-100 mt-3"
+          style="font-size:0.8rem;">
+          <i class="bi bi-alarm me-1"></i>Ir a pronosticar ahora
+        </a>
+        {% else %}
+        <div class="text-center text-muted py-3">
+          <i class="bi bi-check-circle" style="font-size:1.8rem; opacity:0.3;"></i>
+          <p class="mt-2 mb-0" style="font-size:0.83rem;">
+            Ningún partido se bloquea en las próximas 6 horas.
+          </p>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ── Fila 3: Últimos resultados ── #}
+<div class="row g-3 mb-3">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-3">
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em;
+                    color:#aaa; margin-bottom:12px;">
+          Últimos resultados
+        </div>
+
+        {% if ultimos_resultados %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0" style="font-size:0.82rem;">
+            <thead>
+              <tr style="font-size:0.68rem; text-transform:uppercase; color:#bbb;">
+                <th class="ps-0 pb-1" style="width:35%;">Local</th>
+                <th class="text-center pb-1">Resultado</th>
+                <th class="text-center pb-1">Tu pronóstico</th>
+                <th class="text-center pb-1">Puntos</th>
+                <th class="text-end pb-1 pe-0" style="width:15%;">Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in ultimos_resultados %}
+              {% set p = item.partido %}
+              {% set pron = item.pronostico %}
+              <tr>
+                <td class="ps-0">
+                  <div class="d-flex align-items-center gap-2">
+                    {% if p.equipo_local.escudo_url %}
+                    <img src="{{ url_for('static', filename=p.equipo_local.escudo_url) }}"
+                      style="width:18px; height:18px; object-fit:contain;" alt="">
+                    {% else %}{{ bandera(p.equipo_local) }}{% endif %}
+                    <span>{{ p.equipo_local.nombre }}</span>
+                    <span style="color:#ccc; font-size:0.75rem;">vs</span>
+                    {% if p.equipo_visitante.escudo_url %}
+                    <img src="{{ url_for('static', filename=p.equipo_visitante.escudo_url) }}"
+                      style="width:18px; height:18px; object-fit:contain;" alt="">
+                    {% else %}{{ bandera(p.equipo_visitante) }}{% endif %}
+                    <span>{{ p.equipo_visitante.nombre }}</span>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span style="font-weight:700; color:#003263;">{{ p.resultado_str }}</span>
+                </td>
+                <td class="text-center">
+                  {% if pron %}
+                  {{ pron.goles_local }}–{{ pron.goles_visitante }}
+                  {% else %}
+                  <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if pron %}
+                  {% if pron.puntos == pts_exacto %}
+                  <span class="badge" style="background:#dcfce7; color:#16a34a;">+{{ pron.puntos }} 🎯</span>
+                  {% elif pron.puntos >= pts_parcial %}
+                  <span class="badge" style="background:#fef9c3; color:#854d0e;">+{{ pron.puntos }} ✅</span>
+                  {% else %}
+                  <span class="badge" style="background:#fee2e2; color:#991b1b;">0 ❌</span>
+                  {% endif %}
+                  {% else %}
+                  <span class="badge" style="background:#f1f5f9; color:#aaa;">Sin pron.</span>
+                  {% endif %}
+                </td>
+                <td class="text-end pe-0" style="color:#aaa; font-size:0.75rem;">
+                  {{ p.fecha_hora.strftime('%d') }}/{{ p.fecha_hora.strftime('%m') }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-3">
+          <i class="bi bi-clock-history" style="font-size:1.8rem; opacity:0.3;"></i>
+          <p class="mt-2 mb-0" style="font-size:0.85rem;">Todavía no hay partidos cerrados.</p>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Links rápidos ── #}
+<div class="d-flex gap-2 flex-wrap">
+  <a href="{{ url_for('prode_bp.historial', torneo_id=torneo.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-clock-history me-1"></i>Historial completo
+  </a>
+  <a href="{{ url_for('prode_bp.ranking_torneo', torneo_id=torneo.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-trophy me-1"></i>Ranking
+  </a>
+  <a href="{{ url_for('prode_bp.tabla_grupos', torneo_id=torneo.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-grid me-1"></i>Tabla de grupos
+  </a>
+  <a href="{{ url_for('prode_bp.pronosticos', torneo_id=torneo.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-pencil-square me-1"></i>Pronósticos
+  </a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Cuenta regresiva próximo partido
+  const cdEl = document.getElementById('cd-proximo');
+  if (cdEl) {
+    const target = new Date(cdEl.dataset.target).getTime();
+
+    function updateCd() {
+      const diff = target - Date.now();
+      if (diff <= 0) {
+        ['cdp-h', 'cdp-m', 'cdp-s'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '00';
+        });
+        return;
+      }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      const pad = n => String(n).padStart(2, '0');
+
+      const eh = document.getElementById('cdp-h');
+      const em = document.getElementById('cdp-m');
+      const es = document.getElementById('cdp-s');
+      if (eh) eh.textContent = h > 99 ? h : pad(h);
+      if (em) em.textContent = pad(m);
+      if (es) es.textContent = pad(s);
+    }
+    updateCd();
+    setInterval(updateCd, 1000);
+  }
+</script>
+{% endblock %}
