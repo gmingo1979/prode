@@ -4,14 +4,62 @@
 <div class="page-header">
   <div>
     <h1 class="page-title">Inscripciones</h1>
-    <p class="page-subtitle">Aprobá o rechazá solicitudes de participantes.</p>
+    <p class="page-subtitle">Gestioná participantes y pagos.</p>
   </div>
   <a href="{{ url_for('prode_bp.admin_torneos') }}" class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-arrow-left me-1"></i>Torneos
   </a>
 </div>
 
-{# Filtro por torneo #}
+{# ── Tarjetas resumen ── #}
+<div class="row g-3 mb-4">
+
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:#888;">Aprobados</div>
+        <div style="font-size:1.8rem; font-weight:700; color:#16a34a;">{{ resumen.aprobado }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:#888;">Pago pendiente</div>
+        <div style="font-size:1.8rem; font-weight:700; color:#d97706;">{{ resumen.pago_pendiente }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:#888;">Pendiente aprobación</div>
+        <div style="font-size:1.8rem; font-weight:700; color:#2563eb;">{{ resumen.pendiente }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:#888;">Recaudado</div>
+        <div style="font-size:1.8rem; font-weight:700; color:var(--color-primary);">
+          ${{ '{:,.0f}'.format(resumen.recaudado) }}
+        </div>
+        {% if resumen.rechazado %}
+        <div style="font-size:0.72rem; color:#dc2626;">
+          {{ resumen.rechazado }} rechazado{{ 's' if resumen.rechazado != 1 }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ── Filtro por torneo ── #}
 <div class="d-flex gap-2 mb-3 flex-wrap">
   <a href="{{ url_for('prode_bp.admin_inscripciones') }}"
     class="btn btn-sm {{ 'btn-primary-app' if not torneo_id_sel else 'btn-outline-secondary' }}">
@@ -28,65 +76,120 @@
 {% if inscripciones %}
 <div class="card border-0 shadow-sm">
   <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+    <table class="table table-hover align-middle mb-0 app-datatable" style="font-size:0.84rem;">
       <thead>
         <tr style="background:#f8fafc; font-size:0.72rem; text-transform:uppercase;
                    letter-spacing:0.05em; color:#888;">
           <th class="ps-3 py-2">Jugador</th>
           <th class="d-none d-md-table-cell">Torneo</th>
-          <th class="text-center">Solicitado</th>
+          <th class="text-center">Fecha</th>
           <th class="text-center">Estado</th>
-          <th class="text-end pe-3">Acciones</th>
+          <th class="d-none d-lg-table-cell text-center">Pago MP</th>
+          <th class="d-none d-lg-table-cell text-end">Monto</th>
+          <th class="text-end pe-3" data-dt-orderable="false">Acciones</th>
         </tr>
       </thead>
       <tbody>
         {% for insc in inscripciones %}
         <tr>
+
+          {# Jugador #}
           <td class="ps-3">
             <div class="d-flex align-items-center gap-2">
               <img src="{{ url_for('static', filename=insc.usuario.profile_pic) }}"
-                style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
+                onerror="this.src='{{ url_for('static', filename='img/default.svg') }}'"
+                style="width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0;">
               <div>
                 <div style="font-weight:500;">{{ insc.usuario.nombre_completo }}</div>
                 <div style="font-size:0.72rem; color:#aaa;">{{ insc.usuario.email or insc.usuario.username }}</div>
               </div>
             </div>
           </td>
+
+          {# Torneo #}
           <td class="d-none d-md-table-cell text-muted">{{ insc.torneo.nombre }}</td>
+
+          {# Fecha #}
           <td class="text-center text-muted" style="font-size:0.8rem;">
             {{ insc.created_at.strftime('%d/%m/%Y') }}
           </td>
+
+          {# Estado #}
           <td class="text-center">
             {% if insc.estado == 'aprobado' %}
-            <span class="badge-estado-activo">Aprobado</span>
+              <span class="badge-estado-activo">Aprobado</span>
             {% elif insc.estado == 'rechazado' %}
-            <span class="badge-estado-inactivo">Rechazado</span>
+              <span class="badge-estado-inactivo">Rechazado</span>
+            {% elif insc.estado == 'pago_pendiente' %}
+              <span class="badge" style="background:#fef3c7; color:#92400e; font-size:0.72rem; padding:0.25em 0.6em; border-radius:10px;">
+                Pago pendiente
+              </span>
             {% else %}
-            <span class="badge" style="background:#fef9c3; color:#854d0e; font-size:0.72rem;">
-              Pendiente
-            </span>
+              <span class="badge" style="background:#dbeafe; color:#1e40af; font-size:0.72rem; padding:0.25em 0.6em; border-radius:10px;">
+                Pend. aprobación
+              </span>
             {% endif %}
           </td>
+
+          {# Info de pago MP #}
+          <td class="d-none d-lg-table-cell text-center">
+            {% if insc.mp_payment_id %}
+              <span class="text-muted" style="font-size:0.75rem;" title="Payment ID: {{ insc.mp_payment_id }}">
+                <i class="bi bi-credit-card me-1"></i>
+                #{{ insc.mp_payment_id[-6:] }}
+              </span>
+              {% if insc.mp_status %}
+              <br>
+              <span style="font-size:0.7rem; color:
+                {% if insc.mp_status == 'approved' %}#16a34a
+                {% elif insc.mp_status == 'rejected' %}#dc2626
+                {% else %}#d97706{% endif %};">
+                {{ insc.mp_status }}
+              </span>
+              {% endif %}
+            {% elif insc.mp_preference_id %}
+              <span class="text-muted" style="font-size:0.72rem;">
+                <i class="bi bi-hourglass me-1"></i>En checkout
+              </span>
+            {% else %}
+              <span class="text-muted" style="font-size:0.72rem;">—</span>
+            {% endif %}
+          </td>
+
+          {# Monto #}
+          <td class="d-none d-lg-table-cell text-end text-muted" style="font-size:0.82rem;">
+            {% set precio = insc.torneo.precio_inscripcion | float %}
+            {% if precio > 0 %}
+              {% if insc.estado == 'aprobado' %}
+                <span style="color:#16a34a; font-weight:600;">${{ precio | int }}</span>
+              {% else %}
+                <span>${{ precio | int }}</span>
+              {% endif %}
+            {% else %}
+              <span class="text-muted">Gratis</span>
+            {% endif %}
+          </td>
+
+          {# Acciones #}
           <td class="text-end pe-3">
             <div class="d-flex gap-1 justify-content-end">
               {% if insc.estado != 'aprobado' %}
-              <form method="POST" action="{{ url_for('prode_bp.admin_inscripcion_aprobar', id=insc.id) }}"
-                class="d-inline">
-                <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2 " title="Aprobar">
+              <form method="POST" action="{{ url_for('prode_bp.admin_inscripcion_aprobar', id=insc.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2" title="Aprobar">
                   <i class="bi bi-check-lg"></i>
                 </button>
               </form>
               {% endif %}
-              {% if insc.estado != 'rechazado' %}
-              <form method="POST" action="{{ url_for('prode_bp.admin_inscripcion_rechazar', id=insc.id) }}"
-                class="d-inline">
-                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 " title="Rechazar">
+              {% if insc.estado not in ('rechazado',) %}
+              <form method="POST" action="{{ url_for('prode_bp.admin_inscripcion_rechazar', id=insc.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Rechazar">
                   <i class="bi bi-x-lg"></i>
                 </button>
               </form>
               {% endif %}
             </div>
           </td>
+
         </tr>
         {% endfor %}
       </tbody>

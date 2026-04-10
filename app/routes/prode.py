@@ -60,16 +60,16 @@ def index():
     torneos = ProdeTorneo.query.filter_by(activo=True)\
                                .order_by(ProdeTorneo.fecha_inicio.desc()).all()
 
-    mis_inscripciones = {
-        i.torneo_id: i.estado
-        for i in ProdeInscripcion.query.filter_by(usuario_id=current_user.id).all()
-    }
+    inscripciones = ProdeInscripcion.query.filter_by(usuario_id=current_user.id).all()
+    mis_inscripciones     = {i.torneo_id: i.estado for i in inscripciones}
+    mis_inscripciones_obj = {i.torneo_id: i        for i in inscripciones}
 
     from datetime import date
     return render_template('prode/index.html',
                            titulo='Prode',
                            torneos=torneos,
                            mis_inscripciones=mis_inscripciones,
+                           mis_inscripciones_obj=mis_inscripciones_obj,
                            today=date.today())
 
 
@@ -80,6 +80,7 @@ def index():
 @prode_bp.route('/<int:torneo_id>/inscribirse', methods=['POST'])
 @login_required
 def inscribirse(torneo_id):
+    from flask import current_app
     torneo = ProdeTorneo.query.get_or_404(torneo_id)
 
     if not torneo.inscripcion_abierta:
@@ -88,17 +89,259 @@ def inscribirse(torneo_id):
 
     existente = _get_inscripcion(torneo_id)
     if existente:
+        # Si tiene un pago pendiente, redirigir al checkout de nuevo
+        if existente.estado == 'pago_pendiente' and existente.mp_preference_id:
+            import mercadopago
+            sdk = mercadopago.SDK(current_app.config['MP_ACCESS_TOKEN'])
+            pref = sdk.preference().get(existente.mp_preference_id)
+            init_point = pref.get('response', {}).get('init_point')
+            if init_point:
+                return redirect(init_point)
         flash('Ya tenés una solicitud de inscripción para este torneo.', 'info')
         return redirect(url_for('prode_bp.index'))
 
+    precio = float(torneo.precio_inscripcion or 0)
+
+    # ── Torneo gratuito: inscripción directa pendiente de aprobación admin ──
+    if precio == 0:
+        insc = ProdeInscripcion(usuario_id=current_user.id,
+                                torneo_id=torneo_id,
+                                estado='pendiente')
+        db.session.add(insc)
+        db.session.commit()
+        flash(f'Solicitud enviada para <strong>{torneo.nombre}</strong>. '
+              'Un administrador la aprobará pronto.', 'success')
+        return redirect(url_for('prode_bp.index'))
+
+    # ── Torneo pago: crear preference en MercadoPago ────────────────────────
+    import mercadopago
+
+    mp_token = current_app.config.get('MP_ACCESS_TOKEN', '')
+    if not mp_token:
+        flash('El pago no está configurado. Contactá al administrador.', 'danger')
+        return redirect(url_for('prode_bp.index'))
+
+    # Crear inscripción en estado pago_pendiente antes de ir a MP
     insc = ProdeInscripcion(usuario_id=current_user.id,
                             torneo_id=torneo_id,
-                            estado='pendiente')
+                            estado='pago_pendiente')
     db.session.add(insc)
+    db.session.flush()  # necesitamos el id antes del commit
+
+    base_url = current_app.config.get('BASE_URL', request.host_url.rstrip('/'))
+    sdk = mercadopago.SDK(mp_token)
+
+    success_url = f"{base_url}{url_for('prode_bp.pago_success')}"
+    failure_url = f"{base_url}{url_for('prode_bp.pago_failure')}"
+    pending_url = f"{base_url}{url_for('prode_bp.pago_pending')}"
+
+    preference_data = {
+        "items": [{
+            "id":          f"torneo-{torneo_id}",
+            "title":       f"Inscripción — {torneo.nombre}",
+            "quantity":    1,
+            "unit_price":  precio,
+            "currency_id": "ARS",
+        }],
+        "payer": {
+            "name":    current_user.nombre,
+            "surname": current_user.apellido,
+            "email":   current_user.email or "",
+        },
+        "back_urls": {
+            "success": success_url,
+            "failure": failure_url,
+            "pending": pending_url,
+        },
+        "external_reference":   str(insc.id),
+        "statement_descriptor": "PRODE",
+    }
+
+    # auto_return solo funciona con HTTPS (requerido por MP en producción)
+    if base_url.startswith("https://"):
+        preference_data["auto_return"] = "approved"
+
+    # notification_url solo si es accesible públicamente (no localhost)
+    if "localhost" not in base_url and "127.0.0.1" not in base_url:
+        preference_data["notification_url"] = f"{base_url}{url_for('prode_bp.pago_webhook')}"
+
+    try:
+        resp = sdk.preference().create(preference_data)
+        preference = resp.get('response', {})
+        init_point = preference.get('init_point')
+        if not init_point:
+            raise ValueError(f"Sin init_point: {resp}")
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"MP preference error: {e}")
+        flash('No se pudo iniciar el pago. Intentá de nuevo.', 'danger')
+        return redirect(url_for('prode_bp.index'))
+
+    insc.mp_preference_id = preference['id']
     db.session.commit()
-    flash(f'Solicitud enviada para <strong>{torneo.nombre}</strong>. '
-          'Un administrador la aprobará pronto.', 'success')
+
+    return redirect(init_point)
+
+
+# ── Callbacks de MercadoPago ───────────────────────────────────────────────
+
+@prode_bp.route('/pago/success')
+@login_required
+def pago_success():
+    """MP redirige acá cuando el pago fue aprobado."""
+    payment_id       = request.args.get('payment_id')
+    status           = request.args.get('status')
+    external_ref     = request.args.get('external_reference')
+    merchant_order   = request.args.get('merchant_order_id')
+
+    insc = None
+    if external_ref and external_ref.isdigit():
+        insc = ProdeInscripcion.query.get(int(external_ref))
+
+    if insc and status == 'approved':
+        insc.estado        = 'aprobado'
+        insc.mp_payment_id = payment_id
+        insc.mp_status     = status
+        db.session.commit()
+        flash(f'¡Pago aprobado! Ya estás inscripto en <strong>{insc.torneo.nombre}</strong>.', 'success')
+    elif insc:
+        insc.mp_payment_id = payment_id
+        insc.mp_status     = status
+        db.session.commit()
+        flash('El pago está siendo procesado. Te avisaremos cuando se confirme.', 'info')
+
     return redirect(url_for('prode_bp.index'))
+
+
+@prode_bp.route('/pago/failure')
+@login_required
+def pago_failure():
+    """MP redirige acá cuando el pago falló o fue rechazado."""
+    external_ref = request.args.get('external_reference')
+    if external_ref and external_ref.isdigit():
+        insc = ProdeInscripcion.query.get(int(external_ref))
+        if insc and insc.estado == 'pago_pendiente':
+            insc.mp_status = 'rejected'
+            db.session.commit()
+    flash('El pago no pudo completarse. Podés intentar nuevamente.', 'danger')
+    return redirect(url_for('prode_bp.index'))
+
+
+@prode_bp.route('/pago/pending')
+@login_required
+def pago_pending():
+    """MP redirige acá para pagos en proceso (ej: transferencia bancaria)."""
+    flash('Tu pago está pendiente de acreditación. Te confirmaremos la inscripción cuando se acredite.', 'info')
+    return redirect(url_for('prode_bp.index'))
+
+
+@prode_bp.route('/pago/verificar/<int:insc_id>', methods=['POST'])
+@login_required
+def pago_verificar(insc_id):
+    """
+    El usuario ya pagó en MP pero el callback no llegó (ej: localhost sin auto_return).
+    Consulta directamente a MP si el pago fue aprobado y actualiza la inscripción.
+    """
+    from flask import current_app
+    import mercadopago
+
+    insc = ProdeInscripcion.query.get_or_404(insc_id)
+
+    # Solo el dueño de la inscripción puede verificar
+    if insc.usuario_id != current_user.id:
+        flash('Acceso no autorizado.', 'danger')
+        return redirect(url_for('prode_bp.index'))
+
+    if insc.estado == 'aprobado':
+        flash('Tu inscripción ya está aprobada.', 'info')
+        return redirect(url_for('prode_bp.index'))
+
+    mp_token = current_app.config.get('MP_ACCESS_TOKEN', '')
+    if not mp_token or not insc.mp_preference_id:
+        flash('No se pudo verificar el pago. Contactá al administrador.', 'danger')
+        return redirect(url_for('prode_bp.index'))
+
+    try:
+        sdk = mercadopago.SDK(mp_token)
+        # Buscar pagos por external_reference (id de la inscripción)
+        result = sdk.payment().search({
+            "external_reference": str(insc.id),
+            "sort":               "date_created",
+            "criteria":           "desc",
+        })
+        payments = result.get('response', {}).get('results', [])
+
+        aprobado = any(p.get('status') == 'approved' for p in payments)
+
+        if aprobado:
+            payment = next(p for p in payments if p.get('status') == 'approved')
+            insc.estado        = 'aprobado'
+            insc.mp_payment_id = str(payment.get('id', ''))
+            insc.mp_status     = 'approved'
+            db.session.commit()
+            flash(f'¡Pago verificado! Ya estás inscripto en <strong>{insc.torneo.nombre}</strong>.', 'success')
+        elif payments:
+            insc.mp_status = payments[0].get('status', '')
+            db.session.commit()
+            flash(f'El pago figura como <strong>{insc.mp_status}</strong>. Si completaste el pago esperá unos minutos e intentá de nuevo.', 'warning')
+        else:
+            flash('No encontramos pagos asociados. Si ya pagaste, esperá unos minutos e intentá de nuevo.', 'warning')
+
+    except Exception as e:
+        current_app.logger.error(f"MP verificar error: {e}")
+        flash('No se pudo consultar el estado del pago. Intentá de nuevo.', 'danger')
+
+    return redirect(url_for('prode_bp.index'))
+
+
+@prode_bp.route('/pago/webhook', methods=['POST'])
+def pago_webhook():
+    """
+    Notificación server-to-server de MercadoPago.
+    MP llama a esta URL cada vez que cambia el estado de un pago.
+    No requiere login — MP llama directamente.
+    """
+    from flask import current_app
+    import mercadopago
+
+    data = request.get_json(silent=True) or {}
+    topic = data.get('type') or request.args.get('topic', '')
+
+    if topic != 'payment':
+        return '', 200
+
+    payment_id = (data.get('data', {}).get('id')
+                  or request.args.get('id'))
+    if not payment_id:
+        return '', 200
+
+    mp_token = current_app.config.get('MP_ACCESS_TOKEN', '')
+    if not mp_token:
+        return '', 200
+
+    try:
+        sdk = mercadopago.SDK(mp_token)
+        payment_info = sdk.payment().get(payment_id)
+        payment = payment_info.get('response', {})
+
+        external_ref = payment.get('external_reference')
+        status       = payment.get('status')
+
+        if external_ref and external_ref.isdigit():
+            insc = ProdeInscripcion.query.get(int(external_ref))
+            if insc:
+                insc.mp_payment_id = str(payment_id)
+                insc.mp_status     = status
+                if status == 'approved':
+                    insc.estado = 'aprobado'
+                elif status in ('rejected', 'cancelled'):
+                    insc.estado = 'pago_pendiente'  # puede reintentar
+                db.session.commit()
+    except Exception as e:
+        current_app.logger.error(f"Webhook MP error: {e}")
+        return '', 500
+
+    return '', 200
 
 
 # =================================================================
@@ -630,11 +873,15 @@ def _torneo_desde_form(t):
         except ValueError:
             return None
 
-    t.nombre              = f.get('nombre', '').strip()
-    t.descripcion         = f.get('descripcion', '').strip() or None
-    t.fecha_inicio        = parse_date(f.get('fecha_inicio'))
-    t.fecha_fin           = parse_date(f.get('fecha_fin'))
-    t.inscripcion_abierta = f.get('inscripcion_abierta') == '1'
+    t.nombre               = f.get('nombre', '').strip()
+    t.descripcion          = f.get('descripcion', '').strip() or None
+    t.fecha_inicio         = parse_date(f.get('fecha_inicio'))
+    t.fecha_fin            = parse_date(f.get('fecha_fin'))
+    t.inscripcion_abierta  = f.get('inscripcion_abierta') == '1'
+    try:
+        t.precio_inscripcion = float(f.get('precio_inscripcion') or 0)
+    except ValueError:
+        t.precio_inscripcion = 0
     return t
 
 
@@ -892,18 +1139,35 @@ def admin_inscripciones():
     if torneo_id:
         q = q.filter_by(torneo_id=torneo_id)
 
-    # Pendientes primero
     inscripciones = q.order_by(
         ProdeInscripcion.estado,
         ProdeInscripcion.created_at
     ).all()
 
     torneos = ProdeTorneo.query.order_by(ProdeTorneo.fecha_inicio.desc()).all()
+
+    # ── Resumen financiero ─────────────────────────────────────────────────
+    resumen = {
+        'aprobado':      0,
+        'pendiente':     0,
+        'pago_pendiente':0,
+        'rechazado':     0,
+        'recaudado':     0.0,
+    }
+    for insc in inscripciones:
+        estado = insc.estado
+        if estado in resumen:
+            resumen[estado] += 1
+        precio = float(insc.torneo.precio_inscripcion or 0)
+        if estado == 'aprobado' and precio > 0:
+            resumen['recaudado'] += precio
+
     return render_template('prode/admin/inscripciones.html',
                            titulo='Admin — Inscripciones',
                            inscripciones=inscripciones,
                            torneos=torneos,
-                           torneo_id_sel=torneo_id)
+                           torneo_id_sel=torneo_id,
+                           resumen=resumen)
 
 
 @prode_bp.route('/admin/inscripciones/<int:id>/aprobar', methods=['POST'])

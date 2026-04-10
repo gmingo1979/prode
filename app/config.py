@@ -61,3 +61,6 @@ class Config:
     # ── Google OAuth — opcional ───────────────────────────────
     GOOGLE_CLIENT_ID     = os.getenv('GOOGLE_CLIENT_ID',     '')
     GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
+
+    # ── MercadoPago — opcional (solo para torneos pagos) ─────
+    MP_ACCESS_TOKEN = os.getenv('MP_ACCESS_TOKEN', '')

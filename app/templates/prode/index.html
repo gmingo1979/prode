@@ -151,6 +151,22 @@
             <i class="bi bi-trophy me-1"></i>Ranking
           </a>
 
+          {% elif estado_insc == 'pago_pendiente' %}
+          {# El usuario fue a MP pero no volvió (localhost / sin auto_return) #}
+          {% set mi_insc = mis_inscripciones_obj.get(torneo.id) %}
+          <div class="d-flex flex-column gap-2 w-100">
+            <span class="text-warning" style="font-size:0.82rem;">
+              <i class="bi bi-clock-history me-1"></i>Pago pendiente de confirmación
+            </span>
+            {% if mi_insc %}
+            <form method="POST" action="{{ url_for('prode_bp.pago_verificar', insc_id=mi_insc.id) }}">
+              <button type="submit" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-check2-circle me-1"></i>Ya pagué — verificar
+              </button>
+            </form>
+            {% endif %}
+          </div>
+
           {% elif estado_insc == 'pendiente' %}
           <span class="btn btn-sm btn-outline-warning disabled">
             <i class="bi bi-hourglass-split me-1"></i>Pendiente de aprobación

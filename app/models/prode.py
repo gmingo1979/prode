@@ -24,7 +24,8 @@ class ProdeTorneo(db.Model):
     fecha_inicio = db.Column(db.Date,        nullable=False)
     fecha_fin    = db.Column(db.Date,        nullable=False)
     activo       = db.Column(db.Boolean,     default=True)
-    inscripcion_abierta = db.Column(db.Boolean, default=True)
+    inscripcion_abierta  = db.Column(db.Boolean, default=True)
+    precio_inscripcion   = db.Column(db.Numeric(10, 2), default=0, nullable=False)
     created_at   = db.Column(db.DateTime,   default=lambda: datetime.now(timezone.utc))
 
     fases         = db.relationship('ProdeFase',        backref='torneo', lazy=True,
@@ -161,11 +162,15 @@ class ProdeInscripcion(db.Model):
         db.UniqueConstraint('usuario_id', 'torneo_id', name='uq_prode_inscripcion'),
     )
 
-    id         = db.Column(db.Integer,    primary_key=True)
-    usuario_id = db.Column(db.Integer,    db.ForeignKey('usuarios.id'),      nullable=False)
-    torneo_id  = db.Column(db.Integer,    db.ForeignKey('prode_torneos.id'), nullable=False)
-    estado     = db.Column(db.String(20), default='pendiente')
-    created_at = db.Column(db.DateTime,   default=lambda: datetime.now(timezone.utc))
+    id               = db.Column(db.Integer,    primary_key=True)
+    usuario_id       = db.Column(db.Integer,    db.ForeignKey('usuarios.id'),      nullable=False)
+    torneo_id        = db.Column(db.Integer,    db.ForeignKey('prode_torneos.id'), nullable=False)
+    estado           = db.Column(db.String(20), default='pendiente')
+    # MercadoPago
+    mp_preference_id = db.Column(db.String(120), nullable=True)
+    mp_payment_id    = db.Column(db.String(120), nullable=True)
+    mp_status        = db.Column(db.String(50),  nullable=True)
+    created_at       = db.Column(db.DateTime,   default=lambda: datetime.now(timezone.utc))
 
     usuario = db.relationship('Usuario', backref=db.backref('inscripciones_prode', lazy=True))
 
