@@ -1,12 +1,17 @@
 """
-seed_mundial.py — Carga los datos del Mundial FIFA 2026 en la DB SQLite.
+seed_mundial.py — Carga los datos del Mundial FIFA 2026 en la DB.
 
 Uso:
     python seed_mundial.py
 
-Usa INSERT OR IGNORE en todo: si algún registro ya existe (mismo id) lo omite.
-El torneo id=1 debe existir previamente (creado desde el admin web).
+Usa INSERT IGNORE en todo: si algún registro ya existe (mismo id) lo omite.
 """
+
+import os
+from dotenv import load_dotenv
+
+# Cargar .env ANTES de importar la app para que Config lea las variables correctas
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 from app import create_app
 from app.db import db
@@ -17,9 +22,18 @@ app = create_app()
 with app.app_context():
     conn = db.session.connection()
 
+    # ── Torneo ─────────────────────────────────────────────────────────────
+    conn.execute(text("""
+        INSERT IGNORE INTO prode_torneos
+            (id, nombre, descripcion, fecha_inicio, fecha_fin,
+             activo, inscripcion_abierta, precio_inscripcion, created_at)
+        VALUES (1, 'Mundial FIFA 2026', 'Mundial FIFA 2026 — México, EE.UU. y Canadá',
+                '2026-06-11', '2026-07-19', 1, 1, 0, '2026-04-03 04:08:14')
+    """))
+
     # ── Config de puntaje ──────────────────────────────────────────────────
     conn.execute(text("""
-        INSERT OR IGNORE INTO prode_config_puntaje
+        INSERT IGNORE INTO prode_config_puntaje
             (id, torneo_id, resultado_exacto, resultado_parcial, resultado_errado)
         VALUES (1, 1, 3, 1, 0)
     """))
@@ -93,7 +107,7 @@ with app.app_context():
         (560, 1, 'Por definir P',  None, None, None),
     ]
     conn.execute(text("""
-        INSERT OR IGNORE INTO prode_equipos
+        INSERT IGNORE INTO prode_equipos
             (id, torneo_id, nombre, grupo, escudo_url, created_at, codigo_iso)
         VALUES (:id, :torneo_id, :nombre, :grupo, :escudo_url, '2026-04-03 04:08:14', :codigo_iso)
     """), [
@@ -112,7 +126,7 @@ with app.app_context():
         (61, 1, 'Final',            7),
     ]
     conn.execute(text("""
-        INSERT OR IGNORE INTO prode_fases (id, torneo_id, nombre, orden, created_at)
+        INSERT IGNORE INTO prode_fases (id, torneo_id, nombre, orden, created_at)
         VALUES (:id, :torneo_id, :nombre, :orden, '2026-04-03 04:08:14')
     """), [dict(id=f[0], torneo_id=f[1], nombre=f[2], orden=f[3]) for f in fases])
 
@@ -231,7 +245,7 @@ with app.app_context():
         (482, 61, 545, 546, '2026-07-19 16:00:00'),
     ]
     conn.execute(text("""
-        INSERT OR IGNORE INTO prode_partidos
+        INSERT IGNORE INTO prode_partidos
             (id, fase_id, equipo_local_id, equipo_visitante_id, fecha_hora,
              goles_local, goles_visitante, estado, created_at)
         VALUES (:id, :fase_id, :loc, :vis, :fh, NULL, NULL, 'pendiente', '2026-04-03 04:08:15')
@@ -240,18 +254,22 @@ with app.app_context():
         for p in partidos
     ])
 
-    # ── Inscripción del usuario admin (id=1) ───────────────────────────────
-    conn.execute(text("""
-        INSERT OR IGNORE INTO prode_inscripciones
-            (id, usuario_id, torneo_id, estado, created_at)
-        VALUES (1, 1, 1, 'aprobado', '2026-04-03 04:09:16')
-    """))
+    # ── Inscripción del usuario admin (id=1) — solo si existe ─────────────
+    result = conn.execute(text("SELECT id FROM usuarios WHERE id = 1"))
+    admin_existe = result.fetchone() is not None
+    if admin_existe:
+        conn.execute(text("""
+            INSERT IGNORE INTO prode_inscripciones
+                (id, usuario_id, torneo_id, estado, created_at)
+            VALUES (1, 1, 1, 'aprobado', '2026-04-03 04:09:16')
+        """))
 
     db.session.commit()
 
-    print("✓ Seed completado:")
+    print("OK Seed completado:")
+    print("  - 1 torneo")
     print(f"  - {len(equipos)} equipos")
     print(f"  - {len(fases)} fases")
     print(f"  - {len(partidos)} partidos")
-    print("  - 1 inscripción")
+    print(f"  - 1 inscripción" if admin_existe else "  - inscripción omitida (usuario admin no existe aún)")
     print("  - Config de puntaje (3/1/0)")

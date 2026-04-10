@@ -7,6 +7,10 @@ import os
 from logging.handlers import RotatingFileHandler
 
 from dotenv import load_dotenv
+
+# Cargar .env a nivel de módulo para que Config lea las variables correctas al importarse
+load_dotenv(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '.env'))
+
 from flask import Flask, render_template, request
 from flask_login import LoginManager, current_user
 from flask_mail import Mail
@@ -27,8 +31,6 @@ def create_app():
     """Crea y configura la instancia de Flask."""
 
     base_dir = os.path.abspath(os.path.dirname(__file__))
-    env_path = os.path.join(base_dir, '..', '.env')
-    load_dotenv(env_path)
 
     # Validar variable crítica
     if not os.getenv('SECRET_KEY'):

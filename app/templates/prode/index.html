@@ -159,11 +159,18 @@
               <i class="bi bi-clock-history me-1"></i>Pago pendiente de confirmación
             </span>
             {% if mi_insc %}
-            <form method="POST" action="{{ url_for('prode_bp.pago_verificar', insc_id=mi_insc.id) }}">
-              <button type="submit" class="btn btn-sm btn-outline-success">
-                <i class="bi bi-check2-circle me-1"></i>Ya pagué — verificar
-              </button>
-            </form>
+            <div class="d-flex gap-2 flex-wrap">
+              <form method="POST" action="{{ url_for('prode_bp.pago_verificar', insc_id=mi_insc.id) }}">
+                <button type="submit" class="btn btn-sm btn-outline-success">
+                  <i class="bi bi-check2-circle me-1"></i>Ya pagué — verificar
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('prode_bp.inscribirse', torneo_id=torneo.id) }}">
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-credit-card me-1"></i>Ir al pago
+                </button>
+              </form>
+            </div>
             {% endif %}
           </div>
 
