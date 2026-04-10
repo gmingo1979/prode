@@ -128,7 +128,13 @@ def inscribirse(torneo_id):
     db.session.add(insc)
     db.session.flush()  # necesitamos el id antes del commit
 
-    base_url = current_app.config.get('BASE_URL', request.host_url.rstrip('/'))
+    # Usar BASE_URL solo si apunta a un host público; si no, usar el host real del request.
+    # Esto evita que una BASE_URL mal configurada (ej: http://127.0.0.1:5000) rompa los callbacks de MP.
+    _configured_url = current_app.config.get('BASE_URL', '').rstrip('/')
+    _es_local = not _configured_url or any(
+        s in _configured_url for s in ('localhost', '127.0.0.1', '0.0.0.0')
+    )
+    base_url = request.host_url.rstrip('/') if _es_local else _configured_url
     sdk = mercadopago.SDK(mp_token)
 
     success_url = f"{base_url}{url_for('prode_bp.pago_success')}"
@@ -153,13 +159,10 @@ def inscribirse(torneo_id):
             "failure": failure_url,
             "pending": pending_url,
         },
+        "auto_return": "approved",
         "external_reference":   str(insc.id),
         "statement_descriptor": "PRODE",
     }
-
-    # auto_return solo funciona con HTTPS (requerido por MP en producción)
-    if base_url.startswith("https://"):
-        preference_data["auto_return"] = "approved"
 
     # notification_url solo si es accesible públicamente (no localhost)
     if "localhost" not in base_url and "127.0.0.1" not in base_url:
