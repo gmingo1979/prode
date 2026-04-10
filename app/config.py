@@ -13,16 +13,28 @@ class Config:
     FLASK_ENV  = os.getenv('FLASK_ENV', 'production')
     SECRET_KEY = os.getenv('SECRET_KEY')  # Sin fallback — la app falla si no está definida
 
-    # ── Base de datos (SQLite) ───────────────────────────────
+    # ── Base de datos ────────────────────────────────────────
     APP_DIR      = os.path.abspath(os.path.dirname(__file__))
     PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, '..'))
 
-    _db_filename = os.getenv('DB_PATH', 'prode.db')
-    # Si es una ruta relativa, la ubica en la raíz del proyecto
-    if not os.path.isabs(_db_filename):
-        _db_filename = os.path.join(PROJECT_ROOT, _db_filename)
+    _db_engine = os.getenv('DB_ENGINE', 'sqlite').lower()
 
-    SQLALCHEMY_DATABASE_URI     = f'sqlite:///{_db_filename}'
+    if _db_engine == 'mysql':
+        _host = os.getenv('DB_HOST', 'localhost')
+        _port = os.getenv('DB_PORT', '3306')
+        _user = os.getenv('DB_USER')
+        _pass = os.getenv('DB_PASS', '')
+        _name = os.getenv('DB_NAME')
+        SQLALCHEMY_DATABASE_URI = (
+            f'mysql+pymysql://{_user}:{_pass}@{_host}:{_port}/{_name}?charset=utf8mb4'
+        )
+    else:
+        # SQLite (default)
+        _db_filename = os.getenv('DB_PATH', 'prode.db')
+        if not os.path.isabs(_db_filename):
+            _db_filename = os.path.join(PROJECT_ROOT, _db_filename)
+        SQLALCHEMY_DATABASE_URI = f'sqlite:///{_db_filename}'
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # ── Aplicación ───────────────────────────────────────────
