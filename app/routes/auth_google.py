@@ -115,6 +115,9 @@ def callback():
     db.session.add(nuevo)
     db.session.commit()
 
+    from app.services.prode_mail import enviar_bienvenida
+    enviar_bienvenida(nuevo)
+
     login_user(nuevo, remember=False)
     session['auth_provider'] = 'google'
     flash('¡Cuenta creada! Bienvenido/a.', 'success')

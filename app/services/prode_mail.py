@@ -77,6 +77,265 @@ TEMPLATE_RESULTADO = """
 """
 
 
+TEMPLATE_BIENVENIDA = """
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+
+  <div style="background:#003263; padding:20px; text-align:center;">
+    <h2 style="color:#fff; margin:0;">🏆 Bienvenido/a al Prode</h2>
+  </div>
+
+  <div style="padding:24px;">
+    <p>Hola <strong>{{ nombre }}</strong>,</p>
+
+    <p>Tu cuenta fue creada exitosamente. Ya podés explorar los torneos disponibles
+       y empezar a hacer tus pronósticos.</p>
+
+    <p style="margin-top:24px;">
+      <a href="{{ url_inicio }}"
+         style="background:#003263; color:#fff; padding:10px 20px;
+                border-radius:6px; text-decoration:none; font-weight:bold;">
+        Ir al Prode
+      </a>
+    </p>
+  </div>
+
+  <div style="background:#f0f2f5; padding:12px; text-align:center;
+              font-size:0.75rem; color:#888;">
+    Prode
+  </div>
+
+</body>
+</html>
+"""
+
+
+def enviar_bienvenida(usuario):
+    """
+    Envía mail de bienvenida al usuario recién registrado.
+    Falla silenciosamente si Flask-Mail no está configurado.
+    """
+    mail = _get_mail()
+    if not mail:
+        return
+
+    if not usuario.email:
+        return
+
+    from flask import url_for
+    try:
+        url_inicio = url_for('main_bp.index', _external=True)
+    except Exception:
+        url_inicio = '#'
+
+    html = render_template_string(
+        TEMPLATE_BIENVENIDA,
+        nombre     = usuario.nombre,
+        url_inicio = url_inicio,
+    )
+
+    try:
+        from flask_mail import Message
+        msg = Message(
+            subject    = '¡Bienvenido/a al Prode!',
+            recipients = [usuario.email],
+            html       = html,
+        )
+        mail.send(msg)
+        logger.info(f'Prode mail: bienvenida enviada a {usuario.email}')
+    except Exception as e:
+        logger.warning(f'Prode mail: error enviando bienvenida a {usuario.email} — {e}')
+
+
+TEMPLATE_INSCRIPCION_PENDIENTE_ADMIN = """
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+
+  <div style="background:#003263; padding:20px; text-align:center;">
+    <h2 style="color:#fff; margin:0;">🏆 Nueva solicitud de inscripción</h2>
+  </div>
+
+  <div style="padding:24px;">
+    <p>Se recibió una nueva solicitud de inscripción al torneo
+       <strong>{{ torneo }}</strong>.</p>
+
+    <table style="width:100%; border-collapse:collapse; margin:16px 0;">
+      <tr>
+        <td style="padding:8px; border-bottom:1px solid #e5e7eb; color:#666; width:40%;">Jugador</td>
+        <td style="padding:8px; border-bottom:1px solid #e5e7eb;"><strong>{{ nombre_completo }}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding:8px; border-bottom:1px solid #e5e7eb; color:#666;">Email</td>
+        <td style="padding:8px; border-bottom:1px solid #e5e7eb;">{{ email }}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; color:#666;">Torneo</td>
+        <td style="padding:8px;">{{ torneo }}</td>
+      </tr>
+    </table>
+
+    <p style="margin-top:24px;">
+      <a href="{{ url_inscripciones }}"
+         style="background:#003263; color:#fff; padding:10px 20px;
+                border-radius:6px; text-decoration:none; font-weight:bold;">
+        Gestionar inscripciones
+      </a>
+    </p>
+  </div>
+
+  <div style="background:#f0f2f5; padding:12px; text-align:center;
+              font-size:0.75rem; color:#888;">
+    Prode
+  </div>
+
+</body>
+</html>
+"""
+
+TEMPLATE_INSCRIPCION_APROBADA = """
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+
+  <div style="background:#003263; padding:20px; text-align:center;">
+    <h2 style="color:#fff; margin:0;">🏆 ¡Inscripción aprobada!</h2>
+  </div>
+
+  <div style="padding:24px;">
+    <p>Hola <strong>{{ nombre }}</strong>,</p>
+
+    <p>Tu inscripción al torneo <strong>{{ torneo }}</strong> fue
+       <span style="color:#16a34a; font-weight:700;">aprobada</span>.
+       Ya podés ingresar y hacer tus pronósticos.</p>
+
+    <p style="margin-top:24px;">
+      <a href="{{ url_pronosticos }}"
+         style="background:#003263; color:#fff; padding:10px 20px;
+                border-radius:6px; text-decoration:none; font-weight:bold;">
+        Ir a pronosticar
+      </a>
+    </p>
+  </div>
+
+  <div style="background:#f0f2f5; padding:12px; text-align:center;
+              font-size:0.75rem; color:#888;">
+    Prode
+  </div>
+
+</body>
+</html>
+"""
+
+
+def _get_mail():
+    """Devuelve instancia de Mail o None si no está configurado."""
+    try:
+        from flask_mail import Mail
+        return Mail(current_app)
+    except Exception as e:
+        logger.warning(f'Prode mail: Flask-Mail no disponible — {e}')
+        return None
+
+
+def notificar_inscripcion_pendiente(insc):
+    """
+    Avisa a todos los administradores que hay una nueva inscripción pendiente.
+    """
+    mail = _get_mail()
+    if not mail:
+        return
+
+    from flask import url_for
+    from app.models.usuario import Usuario
+    from app.models.rol import Rol
+
+    admins = (
+        Usuario.query
+        .join(Usuario.roles)
+        .filter(Rol.nombre == 'Prode - Admin', Usuario.email.isnot(None))
+        .all()
+    )
+    if not admins:
+        logger.warning('Prode mail: no se encontraron administradores para notificar.')
+        return
+
+    try:
+        url_inscripciones = url_for(
+            'prode_bp.admin_inscripciones',
+            torneo_id=insc.torneo_id,
+            _external=True,
+        )
+    except Exception:
+        url_inscripciones = '#'
+
+    html = render_template_string(
+        TEMPLATE_INSCRIPCION_PENDIENTE_ADMIN,
+        nombre_completo  = insc.usuario.nombre_completo,
+        email            = insc.usuario.email or '—',
+        torneo           = insc.torneo.nombre,
+        url_inscripciones = url_inscripciones,
+    )
+
+    destinatarios = [a.email for a in admins]
+    try:
+        from flask_mail import Message
+        msg = Message(
+            subject    = f'[Prode] Nueva inscripción — {insc.torneo.nombre}',
+            recipients = destinatarios,
+            html       = html,
+        )
+        mail.send(msg)
+        logger.info(f'Prode mail: notificación de inscripción pendiente enviada a {destinatarios}')
+    except Exception as e:
+        logger.warning(f'Prode mail: error enviando notificación a admins — {e}')
+
+
+def notificar_inscripcion_aprobada(insc):
+    """
+    Avisa al jugador que su inscripción fue aprobada y ya puede pronosticar.
+    """
+    mail = _get_mail()
+    if not mail:
+        return
+
+    if not insc.usuario.email:
+        return
+
+    from flask import url_for
+    try:
+        url_pronosticos = url_for(
+            'prode_bp.pronosticos',
+            torneo_id=insc.torneo_id,
+            _external=True,
+        )
+    except Exception:
+        url_pronosticos = '#'
+
+    html = render_template_string(
+        TEMPLATE_INSCRIPCION_APROBADA,
+        nombre          = insc.usuario.nombre,
+        torneo          = insc.torneo.nombre,
+        url_pronosticos = url_pronosticos,
+    )
+
+    try:
+        from flask_mail import Message
+        msg = Message(
+            subject    = f'[Prode] ¡Inscripción aprobada! — {insc.torneo.nombre}',
+            recipients = [insc.usuario.email],
+            html       = html,
+        )
+        mail.send(msg)
+        logger.info(f'Prode mail: inscripción aprobada enviada a {insc.usuario.email}')
+    except Exception as e:
+        logger.warning(f'Prode mail: error enviando aprobación a {insc.usuario.email} — {e}')
+
+
 def notificar_cierre_partido(partido):
     """
     Envía mail a cada jugador inscripto y aprobado del torneo

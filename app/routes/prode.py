@@ -109,6 +109,8 @@ def inscribirse(torneo_id):
                                 estado='pendiente')
         db.session.add(insc)
         db.session.commit()
+        from app.services.prode_mail import notificar_inscripcion_pendiente
+        notificar_inscripcion_pendiente(insc)
         flash(f'Solicitud enviada para <strong>{torneo.nombre}</strong>. '
               'Un administrador la aprobará pronto.', 'success')
         return redirect(url_for('prode_bp.index'))
@@ -1259,6 +1261,8 @@ def admin_inscripcion_aprobar(id):
     insc = ProdeInscripcion.query.get_or_404(id)
     insc.estado = 'aprobado'
     db.session.commit()
+    from app.services.prode_mail import notificar_inscripcion_aprobada
+    notificar_inscripcion_aprobada(insc)
     flash(f'Inscripción de <strong>{insc.usuario.nombre_completo}</strong> aprobada.', 'success')
     return redirect(url_for('prode_bp.admin_inscripciones',
                             torneo_id=insc.torneo_id))

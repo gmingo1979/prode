@@ -10,57 +10,52 @@
 
 {% if torneos %}
 
-{# ── Banner cuenta regresiva para el torneo activo ── #}
-{% for torneo in torneos %}
-{% if torneo.activo %}
-<div class="card border-0 shadow-sm mb-4 overflow-hidden" id="banner-mundial">
+{# ── Banner: un único torneo destacado (el primero activo en curso, o el próximo) ── #}
+{% set meses = ['','enero','febrero','marzo','abril','mayo','junio',
+                'julio','agosto','septiembre','octubre','noviembre','diciembre'] %}
+{% set banner_ns = namespace(torneo=none) %}
+{% for t in torneos %}
+  {% if banner_ns.torneo is none and t.activo %}
+    {% set banner_ns.torneo = t %}
+  {% endif %}
+{% endfor %}
+{% set banner = banner_ns.torneo %}
+
+{% if banner %}
+<div class="card border-0 shadow-sm mb-4 overflow-hidden">
   <div style="background:linear-gradient(135deg, #001f4d 0%, #003263 50%, #004a99 100%);
               position:relative; overflow:hidden;">
 
-    {# Fondo decorativo con números 26 #}
-    <div style="position:absolute; inset:0; opacity:0.04; font-size:18rem; font-weight:900;
-                color:#fff; display:flex; align-items:center; justify-content:flex-end;
-                padding-right:2rem; line-height:1; pointer-events:none; user-select:none;">
-      26
-    </div>
+    <div class="row g-0 align-items-center" style="min-height:180px; position:relative; z-index:1;">
 
-    <div class="row g-0 align-items-center" style="min-height:200px; position:relative; z-index:1;">
-
-      {# Logo Mundial #}
+      {# Ícono genérico #}
       <div class="col-auto d-flex align-items-center justify-content-center ps-4 pe-3 py-4">
-        <div style="width:120px; text-align:center;">
-          {# Logo oficial FIFA World Cup 2026 desde Wikipedia Commons #}
-          <img src="{{ url_for('static', filename='prode/logo_mundial_2026.png') }}"
-            onerror="this.style.display='none'; document.getElementById('trophy-fallback').style.display='flex';"
-            style="width:100px; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.4));" alt="FIFA World Cup 2026">
-          <div id="trophy-fallback" style="display:none; flex-direction:column; align-items:center; color:#fff;">
-            <span style="font-size:4rem;">🏆</span>
-            <span style="font-size:0.7rem; opacity:0.7; margin-top:4px;">WORLD CUP 2026</span>
-          </div>
+        <div style="width:90px; text-align:center;">
+          <span style="font-size:4.5rem; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.4));">🏆</span>
         </div>
       </div>
 
       {# Info y cuenta regresiva #}
       <div class="col py-4 pe-4">
+        {% if banner.descripcion %}
         <div class="text-white mb-1" style="font-size:0.72rem; opacity:0.6;
              text-transform:uppercase; letter-spacing:0.1em;">
-          FIFA World Cup 2026 · USA / Canada / Mexico
+          {{ banner.descripcion }}
         </div>
+        {% endif %}
         <h2 class="text-white mb-3" style="font-weight:700; font-size:1.4rem;">
-          {{ torneo.nombre }}
+          {{ banner.nombre }}
         </h2>
 
-        {# Cuenta regresiva — solo si el torneo no arrancó todavía #}
-        {% set hoy = now() if now is defined else none %}
-        {% if today is defined and torneo.fecha_inicio > today %}
-        <div class="d-flex gap-3 flex-wrap" id="countdown-{{ torneo.id }}"
-          data-target="{{ torneo.fecha_inicio.isoformat() }}T20:00:00">
+        {# Cuenta regresiva si no arrancó; "En curso" si ya arrancó #}
+        {% if today is defined and banner.fecha_inicio > today %}
+        <div class="d-flex gap-3 flex-wrap" id="countdown-{{ banner.id }}"
+          data-target="{{ banner.fecha_inicio.isoformat() }}T20:00:00">
           {% for bloque in [('dias','Días'),('horas','Horas'),('minutos','Min'),('segundos','Seg')] %}
           <div style="text-align:center; min-width:56px;">
-            <div class="countdown-num" id="cd-{{ bloque[0] }}-{{ torneo.id }}" style="font-size:2.2rem; font-weight:800; color:#fff; line-height:1;
-                        font-variant-numeric:tabular-nums;">
-              --
-            </div>
+            <div class="countdown-num" id="cd-{{ bloque[0] }}-{{ banner.id }}"
+              style="font-size:2.2rem; font-weight:800; color:#fff; line-height:1;
+                     font-variant-numeric:tabular-nums;">--</div>
             <div style="font-size:0.65rem; color:rgba(255,255,255,0.55);
                         text-transform:uppercase; letter-spacing:0.08em; margin-top:2px;">
               {{ bloque[1] }}
@@ -76,38 +71,23 @@
         <div class="d-flex align-items-center gap-2 mt-1">
           <span style="display:inline-block; width:10px; height:10px; border-radius:50%;
                        background:#4ade80; box-shadow:0 0 8px #4ade80; animation:pulso 1.2s infinite;"></span>
-          <span style="color:#4ade80; font-size:1rem; font-weight:700; letter-spacing:0.04em;">
-            En curso
-          </span>
+          <span style="color:#4ade80; font-size:1rem; font-weight:700; letter-spacing:0.04em;">En curso</span>
         </div>
-{% endif %}
+        {% endif %}
 
-        {# Fecha de inicio #}
         <div class="mt-3" style="font-size:0.78rem; color:rgba(255,255,255,0.5);">
           <i class="bi bi-calendar-event me-1"></i>
-          Inicio: {{ torneo.fecha_inicio.strftime('%d de') }}
-          {% set meses = ['','enero','febrero','marzo','abril','mayo','junio',
-          'julio','agosto','septiembre','octubre','noviembre','diciembre'] %}
-          {{ meses[torneo.fecha_inicio.month] }} de {{ torneo.fecha_inicio.year }}
-          · Final: MetLife Stadium, New York
+          {{ banner.fecha_inicio.strftime('%d de') }}
+          {{ meses[banner.fecha_inicio.month] }} de {{ banner.fecha_inicio.year }}
+          — {{ banner.fecha_fin.strftime('%d de') }}
+          {{ meses[banner.fecha_fin.month] }} de {{ banner.fecha_fin.year }}
         </div>
-      </div>
-
-      {# Banderas sedes — decorativo #}
-      <div class="col-auto d-none d-md-flex flex-column gap-2 pe-4 align-items-center">
-        {% for iso, pais in [('us','USA'),('ca','Canada'),('mx','Mexico')] %}
-        <div class="d-flex align-items-center gap-2" style="opacity:0.75;">
-          <span class="fi fi-{{ iso }}" style="border-radius:2px;"></span>
-          <span style="font-size:0.72rem; color:rgba(255,255,255,0.7);">{{ pais }}</span>
-        </div>
-        {% endfor %}
       </div>
 
     </div>
   </div>
 </div>
 {% endif %}
-{% endfor %}
 
 {# ── Cards de torneos ── #}
 <div class="row g-3">
@@ -130,11 +110,18 @@
         <p class="text-muted mb-3" style="font-size:0.85rem;">{{ torneo.descripcion }}</p>
         {% endif %}
 
-        <div class="d-flex gap-3 mb-3" style="font-size:0.8rem; color:#888;">
+        <div class="d-flex align-items-center gap-3 mb-3" style="font-size:0.8rem; color:#888;">
           <span><i class="bi bi-calendar me-1"></i>
             {{ torneo.fecha_inicio.strftime('%d/%m/%Y') }} —
             {{ torneo.fecha_fin.strftime('%d/%m/%Y') }}
           </span>
+          {% if torneo.activo and today is defined and torneo.fecha_inicio <= today %}
+          <span class="d-flex align-items-center gap-1" style="color:#16a34a; font-weight:600;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%;
+                         background:#4ade80; box-shadow:0 0 6px #4ade80; animation:pulso 1.2s infinite;"></span>
+            En curso
+          </span>
+          {% endif %}
         </div>
 
         <div class="mt-auto d-flex gap-2 flex-wrap">

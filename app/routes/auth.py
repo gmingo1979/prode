@@ -104,6 +104,9 @@ def registro():
         db.session.add(usuario)
         db.session.commit()
 
+        from app.services.prode_mail import enviar_bienvenida
+        enviar_bienvenida(usuario)
+
         login_user(usuario, remember=False)
         flash('¡Cuenta creada! Bienvenido/a al Prode.', 'success')
         return redirect(url_for('main_bp.index'))
