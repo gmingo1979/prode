@@ -21,6 +21,7 @@ from flask import (Blueprint, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_login import current_user, login_required
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload, subqueryload
 
 from app.db import db
 from app.models.prode import (ProdeConfigPuntaje, ProdeEquipo, ProdeFase,
@@ -362,12 +363,26 @@ def pronosticos(torneo_id):
         flash('Necesitás estar inscripto y aprobado para pronosticar.', 'warning')
         return redirect(url_for('prode_bp.index'))
 
-    fases = ProdeFase.query.filter_by(torneo_id=torneo_id)\
-                           .order_by(ProdeFase.orden).all()
+    fases = (ProdeFase.query
+             .filter_by(torneo_id=torneo_id)
+             .options(
+                 subqueryload(ProdeFase.partidos)
+                 .joinedload(ProdePartido.equipo_local),
+                 subqueryload(ProdeFase.partidos)
+                 .joinedload(ProdePartido.equipo_visitante),
+             )
+             .order_by(ProdeFase.orden)
+             .all())
 
     mis_pronosticos = {
         p.partido_id: p
-        for p in ProdePronostico.query.filter_by(usuario_id=current_user.id).all()
+        for p in ProdePronostico.query
+            .join(ProdePartido)
+            .join(ProdeFase)
+            .filter(
+                ProdePronostico.usuario_id == current_user.id,
+                ProdeFase.torneo_id == torneo_id,
+            ).all()
     }
 
     todos_partidos = [p for fase in fases for p in fase.partidos]

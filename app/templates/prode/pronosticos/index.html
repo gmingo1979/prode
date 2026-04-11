@@ -137,7 +137,7 @@
                     </div>
                   </div>
                   {% if partido.equipo_local.escudo_url %}
-                  <img src="{{ url_for('static', filename=partido.equipo_local.escudo_url) }}"
+                  <img {{ 'src' if fecha == tab_activa else 'data-src' }}="{{ url_for('static', filename=partido.equipo_local.escudo_url) }}"
                     style="width:28px; height:28px; object-fit:contain;" alt="">
                   {% else %}
                   {{ bandera(partido.equipo_local, size='lg') }}
@@ -197,7 +197,7 @@
               <td class="pe-3">
                 <div class="d-flex align-items-center gap-2">
                   {% if partido.equipo_visitante.escudo_url %}
-                  <img src="{{ url_for('static', filename=partido.equipo_visitante.escudo_url) }}"
+                  <img {{ 'src' if fecha == tab_activa else 'data-src' }}="{{ url_for('static', filename=partido.equipo_visitante.escudo_url) }}"
                     style="width:28px; height:28px; object-fit:contain;" alt="">
                   {% else %}
                   {{ bandera(partido.equipo_visitante, size='lg') }}
@@ -238,7 +238,13 @@
       el.classList.remove('btn-primary-app');
       el.classList.add('btn-outline-secondary');
     });
-    document.getElementById('tab-' + fechaIso).style.display = 'block';
+    const tab = document.getElementById('tab-' + fechaIso);
+    tab.style.display = 'block';
+    // Cargar imágenes lazy de esta tab (escudos que aún no se descargaron)
+    tab.querySelectorAll('img[data-src]').forEach(img => {
+      img.src = img.dataset.src;
+      img.removeAttribute('data-src');
+    });
     btn.classList.add('btn-primary-app');
     btn.classList.remove('btn-outline-secondary');
     sessionStorage.setItem('prode_tab_{{ torneo.id }}', fechaIso);
