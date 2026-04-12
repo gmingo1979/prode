@@ -68,6 +68,7 @@ def create_app():
     flask_app.logger.addHandler(file_handler)
     flask_app.logger.addHandler(stream_handler)
     flask_app.logger.setLevel(logging.WARNING)
+    flask_app.logger.propagate = False   # evita que Flask duplique los logs
 
     # ── Crear carpeta de fotos de perfil ─────────────────────
     os.makedirs(flask_app.config['UPLOAD_PROFILE_PICS_FOLDER'], exist_ok=True)

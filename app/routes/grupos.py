@@ -18,6 +18,8 @@ from flask import (Blueprint, abort, flash, redirect,
                    render_template, request, session, url_for)
 from flask_login import current_user, login_required
 
+from sqlalchemy.orm import joinedload
+
 from app.db import db
 from app.models.grupo import ProdeGrupo, ProdeGrupoInvitacion, ProdeGrupoMiembro
 from app.models.usuario import Usuario
@@ -75,6 +77,7 @@ def mis_grupos():
     membresias = (
         ProdeGrupoMiembro.query
         .filter_by(usuario_id=current_user.id)
+        .options(joinedload(ProdeGrupoMiembro.grupo).joinedload(ProdeGrupo.miembros))
         .order_by(ProdeGrupoMiembro.joined_at.desc())
         .all()
     )
@@ -130,7 +133,11 @@ def crear_grupo():
 @grupos_bp.route('/grupos/<int:grupo_id>')
 @login_required
 def detalle(grupo_id):
-    grupo = ProdeGrupo.query.get_or_404(grupo_id)
+    grupo = (
+        ProdeGrupo.query
+        .options(joinedload(ProdeGrupo.miembros).joinedload(ProdeGrupoMiembro.usuario))
+        .get_or_404(grupo_id)
+    )
 
     if not grupo.es_miembro(current_user.id):
         flash('No pertenecés a ese grupo.', 'warning')
