@@ -44,7 +44,10 @@ def create_app():
     flask_app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
     flask_app.secret_key = flask_app.config.get('SECRET_KEY')
 
-    # ── Logging de seguridad (archivo rotativo) ──────────────
+    # ── Logging de seguridad ─────────────────────────────────
+    _fmt = logging.Formatter('%(asctime)s %(levelname)s [%(module)s:%(lineno)d] %(message)s')
+
+    # Archivo rotativo (útil en local; en Render no persiste entre reinicios)
     logs_dir = os.path.join(base_dir, '..', 'logs')
     os.makedirs(logs_dir, exist_ok=True)
     file_handler = RotatingFileHandler(
@@ -54,10 +57,16 @@ def create_app():
         encoding='utf-8',
     )
     file_handler.setLevel(logging.WARNING)
-    file_handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s [%(module)s:%(lineno)d] %(message)s'
-    ))
+    file_handler.setFormatter(_fmt)
+
+    # stdout → Render lo captura en su dashboard de Logs
+    import sys
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setLevel(logging.WARNING)
+    stream_handler.setFormatter(_fmt)
+
     flask_app.logger.addHandler(file_handler)
+    flask_app.logger.addHandler(stream_handler)
     flask_app.logger.setLevel(logging.WARNING)
 
     # ── Crear carpeta de fotos de perfil ─────────────────────
