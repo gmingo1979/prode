@@ -7,6 +7,11 @@ from app.models.funcion      import Funcion       # noqa: F401
 from app.models.rol_funcion  import RolFuncion    # noqa: F401
 from app.models.sesion_activa import SesionActiva # noqa: F401
 from app.models.config_app   import ConfigApp     # noqa: F401
+from app.models.grupo        import (              # noqa: F401
+    ProdeGrupo,
+    ProdeGrupoMiembro,
+    ProdeGrupoInvitacion,
+)
 from app.models.prode        import (             # noqa: F401
     ProdeTorneo,
     ProdeFase,

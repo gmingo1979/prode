@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Mis grupos</h1>
+    <p class="page-subtitle">Competí con amigos, familia o compañeros en grupos privados.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('grupos_bp.crear_grupo') }}" class="btn btn-sm btn-primary-app">
+      <i class="bi bi-plus-lg me-1"></i>Crear grupo
+    </a>
+    <a href="{{ url_for('grupos_bp.unirse_codigo') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-key me-1"></i>Unirme con código
+    </a>
+  </div>
+</div>
+
+{% if grupos %}
+<div class="row g-3">
+  {% for grupo in grupos %}
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex flex-column p-4">
+
+        <div class="d-flex align-items-start justify-content-between mb-1">
+          <h5 class="mb-0 fw-semibold">{{ grupo.nombre }}</h5>
+          {% if grupo.creador_id == current_user.id %}
+          <span class="ms-2 badge bg-primary" style="font-size:0.65rem;">Admin</span>
+          {% endif %}
+        </div>
+
+        {% if grupo.descripcion %}
+        <p class="text-muted mb-2" style="font-size:0.82rem;">{{ grupo.descripcion }}</p>
+        {% endif %}
+
+        <div class="d-flex gap-3 mb-3" style="font-size:0.78rem; color:#888;">
+          <span><i class="bi bi-people me-1"></i>{{ grupo.cantidad_miembros() }} miembro{{ 's' if grupo.cantidad_miembros() != 1 }}</span>
+          <span>
+            <i class="bi bi-key me-1"></i>
+            <code style="font-size:0.8rem; letter-spacing:0.08em;">{{ grupo.codigo }}</code>
+          </span>
+        </div>
+
+        <div class="mt-auto">
+          <a href="{{ url_for('grupos_bp.detalle', grupo_id=grupo.id) }}"
+             class="btn btn-sm btn-primary-app w-100">
+            <i class="bi bi-trophy me-1"></i>Ver ranking del grupo
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-people" style="font-size:3rem; opacity:0.25;"></i>
+    <p class="mt-3 mb-1 fw-semibold">Todavía no pertenecés a ningún grupo</p>
+    <p class="mb-4" style="font-size:0.85rem;">
+      Creá un grupo e invitá a tus amigos, o ingresá el código que te compartieron.
+    </p>
+    <div class="d-flex gap-2 justify-content-center">
+      <a href="{{ url_for('grupos_bp.crear_grupo') }}" class="btn btn-sm btn-primary-app">
+        <i class="bi bi-plus-lg me-1"></i>Crear grupo
+      </a>
+      <a href="{{ url_for('grupos_bp.unirse_codigo') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-key me-1"></i>Ingresar código
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

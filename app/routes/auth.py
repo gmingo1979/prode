@@ -109,6 +109,19 @@ def registro():
 
         login_user(usuario, remember=False)
         flash('¡Cuenta creada! Bienvenido/a al Prode.', 'success')
+
+        # Si había una invitación a grupo pendiente, procesarla
+        from flask import session as flask_session
+        inv_token = flask_session.get('inv_token')
+        if inv_token:
+            from app.models.grupo import ProdeGrupoInvitacion
+            invitacion = ProdeGrupoInvitacion.query.filter_by(
+                token=inv_token, estado='pendiente'
+            ).first()
+            if invitacion and invitacion.email == email:
+                from app.routes.grupos import _procesar_invitacion
+                return _procesar_invitacion(invitacion, usuario)
+
         return redirect(url_for('main_bp.index'))
 
     return render_template('auth/registro.html', titulo='Crear cuenta', form_data={})

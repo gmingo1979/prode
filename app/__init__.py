@@ -213,6 +213,7 @@ def create_app():
     from app.routes.sesiones      import sesiones_bp
     from app.routes.pwa           import pwa_bp
     from app.routes.config_visual import config_visual_bp
+    from app.routes.grupos        import grupos_bp
 
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(auth_google_bp)
@@ -224,6 +225,7 @@ def create_app():
     flask_app.register_blueprint(sesiones_bp)
     flask_app.register_blueprint(pwa_bp)
     flask_app.register_blueprint(config_visual_bp)
+    flask_app.register_blueprint(grupos_bp)
 
     # ── Manejadores de error ─────────────────────────────────
     @flask_app.errorhandler(401)

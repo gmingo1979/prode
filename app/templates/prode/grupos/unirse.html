@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Unirme a un grupo</h1>
+    <p class="page-subtitle">Ingresá el código que te compartió el administrador del grupo.</p>
+  </div>
+  <a href="{{ url_for('grupos_bp.mis_grupos') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Volver
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <form method="POST">
+
+          <div class="mb-4">
+            <label class="form-label form-label-sm fw-semibold">
+              Código del grupo <span class="text-danger">*</span>
+            </label>
+            <input type="text" name="codigo" class="form-control form-control text-center"
+                   style="font-family:var(--font-mono); font-size:1.4rem; letter-spacing:0.2em;
+                          text-transform:uppercase;"
+                   placeholder="XXXXXXXX"
+                   maxlength="8" required autofocus
+                   value="{{ codigo_param }}">
+            <div class="form-text">8 caracteres, letras y números.</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary-app w-100">
+            <i class="bi bi-key me-1"></i>Unirme al grupo
+          </button>
+
+        </form>
+      </div>
+    </div>
+
+    <p class="text-center text-muted mt-4" style="font-size:0.82rem;">
+      ¿Te invitaron por email? Usá el link del mail y te vas a unir automáticamente.
+    </p>
+  </div>
+</div>
+
+{% endblock %}
