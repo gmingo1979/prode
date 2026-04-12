@@ -80,12 +80,15 @@ def obtener_ranking_torneo(torneo_id: int) -> list:
     for r in ranking:
         r['usuario'] = f"{r.pop('nombre', '')} {r.pop('apellido', '')}".strip()
 
-    # Reemplazar foto_path con avatar_url del modelo
+    # Resolver avatar_url en una sola query (evita N+1)
     from app.models.usuario import Usuario
     from flask import url_for
+    ids = [r['usuario_id'] for r in ranking]
+    usuarios_map = {u.id: u for u in Usuario.query.filter(Usuario.id.in_(ids)).all()}
+    default_avatar = url_for('static', filename='img/default.svg')
     for r in ranking:
-        u = Usuario.query.get(r['usuario_id'])
-        r['foto_path'] = u.avatar_url if u else url_for('static', filename='img/default.svg')
+        u = usuarios_map.get(r['usuario_id'])
+        r['foto_path'] = u.avatar_url if u else default_avatar
 
     ranking.sort(key=lambda r: (
         -(r['puntos']   or 0),
