@@ -6,10 +6,21 @@
 #   from app.routes.pwa import pwa_bp
 #   flask_app.register_blueprint(pwa_bp)
 
-from flask import Blueprint, render_template, send_from_directory
+from flask import Blueprint, jsonify, render_template, send_from_directory
 import os
 
 pwa_bp = Blueprint("pwa", __name__)
+
+
+@pwa_bp.route("/health")
+def health():
+    """
+    Healthcheck para monitoreo externo (UptimeRobot, cron-job.org, etc.).
+    Responde 200 con un JSON mínimo. No requiere autenticación.
+    También sirve para mantener activo el servidor en Render free tier.
+    """
+    from datetime import datetime, timezone
+    return jsonify(status='ok', ts=datetime.now(timezone.utc).isoformat()), 200
 
 
 @pwa_bp.route("/offline")

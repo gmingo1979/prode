@@ -152,6 +152,28 @@ def create_app():
         )
 
     @flask_app.before_request
+    def _marcar_inicio_request():
+        import time
+        request._t_inicio = time.monotonic()
+
+    @flask_app.after_request
+    def _loggear_tiempo_request(response):
+        import time
+        t_inicio = getattr(request, '_t_inicio', None)
+        if t_inicio is not None:
+            duracion_ms = (time.monotonic() - t_inicio) * 1000
+            # Solo loggear requests lentas (>800ms) para no saturar el log
+            if duracion_ms > 800:
+                flask_app.logger.warning(
+                    'SLOW REQUEST  %s %s  →  %s  %.0fms',
+                    request.method,
+                    request.path,
+                    response.status_code,
+                    duracion_ms,
+                )
+        return response
+
+    @flask_app.before_request
     def registrar_sesion():
         """Crea o actualiza el registro de sesión activa del usuario logueado."""
         from flask import session as flask_session, redirect, url_for
