@@ -1,47 +1,19 @@
 # app/services/grupos_mail.py
 #
 # Notificaciones de email para grupos privados del Prode.
-# Falla silenciosamente si Flask-Mail no está configurado.
+# El backend (Resend o SMTP) se configura con MAIL_BACKEND en .env
 
 import logging
-import threading
 
 from flask import current_app, render_template_string, url_for
+from app.services.mail_sender import enviar_async
 
 logger = logging.getLogger(__name__)
 
 
-def _get_mail():
-    try:
-        from flask_mail import Mail
-        return Mail(current_app)
-    except Exception as e:
-        logger.warning(f'Grupos mail: Flask-Mail no disponible — {e}')
-        return None
-
-
-def _enviar_en_thread(app, subject, recipients, html):
-    """Envía el mail dentro del app context en un thread separado.
-    El worker de gunicorn no se bloquea esperando la conexión SMTP."""
-    def _run():
-        with app.app_context():
-            try:
-                from flask_mail import Mail, Message
-                mail = Mail(app)
-                msg  = Message(subject=subject, recipients=recipients, html=html)
-                mail.send(msg)
-                app.logger.warning('Grupos mail OK: "%s" → %s', subject, recipients)
-            except Exception as e:
-                app.logger.warning('Grupos mail ERROR: "%s" → %s — %s', subject, recipients, e)
-
-    t = threading.Thread(target=_run, daemon=True)
-    t.start()
-
-
-def _enviar(mail, subject, recipients, html):
-    # `mail` ya no se usa — se obtiene dentro del thread con app context propio
+def _enviar(subject, recipients, html):
     app = current_app._get_current_object()
-    _enviar_en_thread(app, subject, recipients, html)
+    enviar_async(app, subject=subject, recipients=recipients, html=html)
 
 
 # ── Templates ────────────────────────────────────────────────────────────────
@@ -164,10 +136,6 @@ _TMPL_EXPULSADO = """
 
 def enviar_invitacion(invitacion, es_nuevo_usuario: bool = False):
     """Envía el mail de invitación al email destino."""
-    mail = _get_mail()
-    if not mail:
-        return
-
     try:
         url_aceptar = url_for(
             'grupos_bp.aceptar_invitacion',
@@ -179,15 +147,14 @@ def enviar_invitacion(invitacion, es_nuevo_usuario: bool = False):
 
     html = render_template_string(
         _TMPL_INVITACION,
-        invitado_por    = invitacion.invitado_por.nombre_completo,
-        grupo           = invitacion.grupo.nombre,
-        descripcion     = invitacion.grupo.descripcion,
-        codigo          = invitacion.grupo.codigo,
-        url_aceptar     = url_aceptar,
+        invitado_por     = invitacion.invitado_por.nombre_completo,
+        grupo            = invitacion.grupo.nombre,
+        descripcion      = invitacion.grupo.descripcion,
+        codigo           = invitacion.grupo.codigo,
+        url_aceptar      = url_aceptar,
         es_nuevo_usuario = es_nuevo_usuario,
     )
     _enviar(
-        mail,
         subject    = f'[Prode] {invitacion.invitado_por.nombre} te invitó al grupo "{invitacion.grupo.nombre}"',
         recipients = [invitacion.email],
         html       = html,
@@ -196,10 +163,6 @@ def enviar_invitacion(invitacion, es_nuevo_usuario: bool = False):
 
 def notificar_nuevo_miembro(grupo, nuevo_usuario):
     """Avisa al creador del grupo que alguien se unió."""
-    mail = _get_mail()
-    if not mail:
-        return
-
     creador = grupo.creador
     if not creador.email or creador.id == nuevo_usuario.id:
         return
@@ -218,7 +181,6 @@ def notificar_nuevo_miembro(grupo, nuevo_usuario):
         url_grupo     = url_grupo,
     )
     _enviar(
-        mail,
         subject    = f'[Prode] {nuevo_usuario.nombre} se unió a tu grupo "{grupo.nombre}"',
         recipients = [creador.email],
         html       = html,
@@ -227,10 +189,6 @@ def notificar_nuevo_miembro(grupo, nuevo_usuario):
 
 def notificar_expulsion(grupo, usuario_removido):
     """Avisa al usuario que fue removido del grupo."""
-    mail = _get_mail()
-    if not mail:
-        return
-
     if not usuario_removido.email:
         return
 
@@ -241,12 +199,11 @@ def notificar_expulsion(grupo, usuario_removido):
 
     html = render_template_string(
         _TMPL_EXPULSADO,
-        miembro   = usuario_removido.nombre,
-        grupo     = grupo.nombre,
+        miembro    = usuario_removido.nombre,
+        grupo      = grupo.nombre,
         url_grupos = url_grupos,
     )
     _enviar(
-        mail,
         subject    = f'[Prode] Fuiste removido del grupo "{grupo.nombre}"',
         recipients = [usuario_removido.email],
         html       = html,

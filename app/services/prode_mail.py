@@ -3,16 +3,17 @@
 # Notificaciones por mail del Prode.
 # Se envían al cerrar un partido desde prode_partidos_cerrar().
 #
-# Configuración requerida en .env / config.py:
-#   MAIL_SERVER, MAIL_PORT, MAIL_USE_TLS, MAIL_USERNAME, MAIL_PASSWORD
-#   MAIL_DEFAULT_SENDER
+# Backend configurado en .env:
+#   MAIL_BACKEND=resend  → RESEND_API_KEY + MAIL_DEFAULT_SENDER
+#   MAIL_BACKEND=smtp    → MAIL_SERVER, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD
 #
-# Usa Flask-Mail. Si no está configurado, falla silenciosamente y loggea.
+# Todos los envíos son asíncronos (thread daemon) — no bloquean el worker.
 
 import logging
 import threading
 
 from flask import current_app, render_template_string
+from app.services.mail_sender import enviar_async
 
 logger = logging.getLogger(__name__)
 
@@ -115,14 +116,7 @@ TEMPLATE_BIENVENIDA = """
 
 
 def enviar_bienvenida(usuario):
-    """
-    Envía mail de bienvenida al usuario recién registrado.
-    Falla silenciosamente si Flask-Mail no está configurado.
-    """
-    mail = _get_mail()
-    if not mail:
-        return
-
+    """Envía mail de bienvenida al usuario recién registrado."""
     if not usuario.email:
         return
 
@@ -139,7 +133,7 @@ def enviar_bienvenida(usuario):
     )
 
     app = current_app._get_current_object()
-    _enviar_en_thread(app, '¡Bienvenido/a al Prode!', [usuario.email], html)
+    enviar_async(app, subject='¡Bienvenido/a al Prode!', recipients=[usuario.email], html=html)
 
 
 TEMPLATE_INSCRIPCION_PENDIENTE_ADMIN = """
@@ -225,40 +219,10 @@ TEMPLATE_INSCRIPCION_APROBADA = """
 """
 
 
-def _get_mail():
-    """Devuelve instancia de Mail o None si no está configurado."""
-    try:
-        from flask_mail import Mail
-        return Mail(current_app)
-    except Exception as e:
-        logger.warning(f'Prode mail: Flask-Mail no disponible — {e}')
-        return None
-
-
-def _enviar_en_thread(app, subject, recipients, html):
-    """Envía un mail en thread separado para no bloquear el worker de gunicorn."""
-    def _run():
-        with app.app_context():
-            try:
-                from flask_mail import Mail, Message
-                mail = Mail(app)
-                msg  = Message(subject=subject, recipients=recipients, html=html)
-                mail.send(msg)
-                app.logger.warning('Prode mail OK: "%s" → %s', subject, recipients)
-            except Exception as e:
-                app.logger.warning('Prode mail ERROR: "%s" → %s — %s', subject, recipients, e)
-
-    threading.Thread(target=_run, daemon=True).start()
 
 
 def notificar_inscripcion_pendiente(insc):
-    """
-    Avisa a todos los administradores que hay una nueva inscripción pendiente.
-    """
-    mail = _get_mail()
-    if not mail:
-        return
-
+    """Avisa a todos los administradores que hay una nueva inscripción pendiente."""
     from flask import url_for
     from app.models.usuario import Usuario
     from app.models.rol import Rol
@@ -292,17 +256,11 @@ def notificar_inscripcion_pendiente(insc):
 
     destinatarios = [a.email for a in admins]
     app = current_app._get_current_object()
-    _enviar_en_thread(app, f'[Prode] Nueva inscripción — {insc.torneo.nombre}', destinatarios, html)
+    enviar_async(app, subject=f'[Prode] Nueva inscripción — {insc.torneo.nombre}', recipients=destinatarios, html=html)
 
 
 def notificar_inscripcion_aprobada(insc):
-    """
-    Avisa al jugador que su inscripción fue aprobada y ya puede pronosticar.
-    """
-    mail = _get_mail()
-    if not mail:
-        return
-
+    """Avisa al jugador que su inscripción fue aprobada y ya puede pronosticar."""
     if not insc.usuario.email:
         return
 
@@ -324,32 +282,20 @@ def notificar_inscripcion_aprobada(insc):
     )
 
     app = current_app._get_current_object()
-    _enviar_en_thread(
-        app,
-        f'[Prode] ¡Inscripción aprobada! — {insc.torneo.nombre}',
-        [insc.usuario.email],
-        html,
-    )
+    enviar_async(app, subject=f'[Prode] ¡Inscripción aprobada! — {insc.torneo.nombre}', recipients=[insc.usuario.email], html=html)
 
 
 def notificar_cierre_partido(partido):
     """
     Envía mail a cada jugador inscripto y aprobado del torneo
     informando el resultado y sus puntos.
-    Se ejecuta en un thread para no bloquear el worker de gunicorn.
+    Genera los HTMLs en un thread y despacha cada mail con enviar_async.
     """
-    app      = current_app._get_current_object()
+    app        = current_app._get_current_object()
     partido_id = partido.id
 
     def _run():
         with app.app_context():
-            try:
-                from flask_mail import Mail, Message
-                mail = Mail(app)
-            except Exception as e:
-                app.logger.warning(f'Prode mail: Flask-Mail no disponible — {e}')
-                return
-
             from flask import url_for
             from app.models.prode import ProdeInscripcion, ProdePronostico, ProdePartido
 
@@ -357,8 +303,8 @@ def notificar_cierre_partido(partido):
             if not partido_local:
                 return
 
-            torneo  = partido_local.fase.torneo
-            config  = torneo.config
+            torneo      = partido_local.fase.torneo
+            config      = torneo.config
             pts_exacto  = config.resultado_exacto  if config else 3
             pts_parcial = config.resultado_parcial if config else 1
 
@@ -368,11 +314,16 @@ def notificar_cierre_partido(partido):
             except Exception:
                 url_ranking = '#'
 
+            subject = (
+                f'[Prode] {partido_local.equipo_local.nombre} '
+                f'{partido_local.goles_local}–{partido_local.goles_visitante} '
+                f'{partido_local.equipo_visitante.nombre}'
+            )
+
             inscriptos = ProdeInscripcion.query.filter_by(
                 torneo_id=torneo.id, estado='aprobado'
             ).all()
 
-            enviados = 0
             for insc in inscriptos:
                 usuario = insc.usuario
                 if not usuario.email:
@@ -399,18 +350,9 @@ def notificar_cierre_partido(partido):
                     pts_parcial    = pts_parcial,
                     url_ranking    = url_ranking,
                 )
-                try:
-                    subject = (
-                        f'[Prode] {partido_local.equipo_local.nombre} '
-                        f'{partido_local.goles_local}–{partido_local.goles_visitante} '
-                        f'{partido_local.equipo_visitante.nombre}'
-                    )
-                    msg = Message(subject=subject, recipients=[usuario.email], html=html)
-                    mail.send(msg)
-                    enviados += 1
-                except Exception as e:
-                    app.logger.warning(f'Prode mail: error enviando a {usuario.email} — {e}')
+                enviar_async(app, subject=subject, recipients=[usuario.email], html=html)
 
-            app.logger.warning('Prode mail: %d mails enviados para partido %d', enviados, partido_id)
+            app.logger.warning('Prode mail: mails despachados para partido %d (%d inscriptos)',
+                               partido_id, len(inscriptos))
 
     threading.Thread(target=_run, daemon=True).start()

@@ -61,14 +61,23 @@ class Config:
     # ── Tamaño máximo de archivos subidos (5 MB) ─────────────
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
 
-    # ── Email (SMTP) — opcional, para notificaciones ─────────
+    # ── Email ────────────────────────────────────────────────
+    # MAIL_BACKEND: 'resend' (API HTTPS, funciona en Render free) | 'smtp' (servidor propio)
+    MAIL_BACKEND        = os.getenv('MAIL_BACKEND', 'resend').lower()
+
+    # Backend Resend (https://resend.com — gratis 3000/mes)
+    RESEND_API_KEY      = os.getenv('RESEND_API_KEY', '')
+    # El remitente en Resend debe ser de un dominio verificado en su panel.
+    # En modo test podés usar: onboarding@resend.dev (solo envía a tu propio email)
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@prode.app')
+
+    # Backend SMTP — solo se usa si MAIL_BACKEND=smtp
     MAIL_SERVER         = os.getenv('MAIL_SERVER')
     MAIL_PORT           = int(os.getenv('MAIL_PORT', 587))
     MAIL_USE_TLS        = os.getenv('MAIL_USE_TLS',  'False').lower() == 'true'
     MAIL_USE_SSL        = os.getenv('MAIL_USE_SSL',  'False').lower() == 'true'
     MAIL_USERNAME       = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD       = os.getenv('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
 
     # ── Google OAuth — opcional ───────────────────────────────
     GOOGLE_CLIENT_ID     = os.getenv('GOOGLE_CLIENT_ID',     '')
