@@ -4,6 +4,8 @@
 # Falla silenciosamente si Flask-Mail no está configurado.
 
 import logging
+import threading
+
 from flask import current_app, render_template_string, url_for
 
 logger = logging.getLogger(__name__)
@@ -18,14 +20,28 @@ def _get_mail():
         return None
 
 
+def _enviar_en_thread(app, subject, recipients, html):
+    """Envía el mail dentro del app context en un thread separado.
+    El worker de gunicorn no se bloquea esperando la conexión SMTP."""
+    def _run():
+        with app.app_context():
+            try:
+                from flask_mail import Mail, Message
+                mail = Mail(app)
+                msg  = Message(subject=subject, recipients=recipients, html=html)
+                mail.send(msg)
+                app.logger.warning('Grupos mail OK: "%s" → %s', subject, recipients)
+            except Exception as e:
+                app.logger.warning('Grupos mail ERROR: "%s" → %s — %s', subject, recipients, e)
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+
+
 def _enviar(mail, subject, recipients, html):
-    try:
-        from flask_mail import Message
-        msg = Message(subject=subject, recipients=recipients, html=html)
-        mail.send(msg)
-        logger.info(f'Grupos mail: "{subject}" → {recipients}')
-    except Exception as e:
-        logger.warning(f'Grupos mail: error enviando "{subject}" → {recipients} — {e}')
+    # `mail` ya no se usa — se obtiene dentro del thread con app context propio
+    app = current_app._get_current_object()
+    _enviar_en_thread(app, subject, recipients, html)
 
 
 # ── Templates ────────────────────────────────────────────────────────────────

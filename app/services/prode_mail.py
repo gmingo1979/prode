@@ -10,6 +10,8 @@
 # Usa Flask-Mail. Si no está configurado, falla silenciosamente y loggea.
 
 import logging
+import threading
+
 from flask import current_app, render_template_string
 
 logger = logging.getLogger(__name__)
@@ -136,17 +138,8 @@ def enviar_bienvenida(usuario):
         url_inicio = url_inicio,
     )
 
-    try:
-        from flask_mail import Message
-        msg = Message(
-            subject    = '¡Bienvenido/a al Prode!',
-            recipients = [usuario.email],
-            html       = html,
-        )
-        mail.send(msg)
-        logger.info(f'Prode mail: bienvenida enviada a {usuario.email}')
-    except Exception as e:
-        logger.warning(f'Prode mail: error enviando bienvenida a {usuario.email} — {e}')
+    app = current_app._get_current_object()
+    _enviar_en_thread(app, '¡Bienvenido/a al Prode!', [usuario.email], html)
 
 
 TEMPLATE_INSCRIPCION_PENDIENTE_ADMIN = """
@@ -242,6 +235,22 @@ def _get_mail():
         return None
 
 
+def _enviar_en_thread(app, subject, recipients, html):
+    """Envía un mail en thread separado para no bloquear el worker de gunicorn."""
+    def _run():
+        with app.app_context():
+            try:
+                from flask_mail import Mail, Message
+                mail = Mail(app)
+                msg  = Message(subject=subject, recipients=recipients, html=html)
+                mail.send(msg)
+                app.logger.warning('Prode mail OK: "%s" → %s', subject, recipients)
+            except Exception as e:
+                app.logger.warning('Prode mail ERROR: "%s" → %s — %s', subject, recipients, e)
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def notificar_inscripcion_pendiente(insc):
     """
     Avisa a todos los administradores que hay una nueva inscripción pendiente.
@@ -282,17 +291,8 @@ def notificar_inscripcion_pendiente(insc):
     )
 
     destinatarios = [a.email for a in admins]
-    try:
-        from flask_mail import Message
-        msg = Message(
-            subject    = f'[Prode] Nueva inscripción — {insc.torneo.nombre}',
-            recipients = destinatarios,
-            html       = html,
-        )
-        mail.send(msg)
-        logger.info(f'Prode mail: notificación de inscripción pendiente enviada a {destinatarios}')
-    except Exception as e:
-        logger.warning(f'Prode mail: error enviando notificación a admins — {e}')
+    app = current_app._get_current_object()
+    _enviar_en_thread(app, f'[Prode] Nueva inscripción — {insc.torneo.nombre}', destinatarios, html)
 
 
 def notificar_inscripcion_aprobada(insc):
@@ -323,89 +323,94 @@ def notificar_inscripcion_aprobada(insc):
         url_pronosticos = url_pronosticos,
     )
 
-    try:
-        from flask_mail import Message
-        msg = Message(
-            subject    = f'[Prode] ¡Inscripción aprobada! — {insc.torneo.nombre}',
-            recipients = [insc.usuario.email],
-            html       = html,
-        )
-        mail.send(msg)
-        logger.info(f'Prode mail: inscripción aprobada enviada a {insc.usuario.email}')
-    except Exception as e:
-        logger.warning(f'Prode mail: error enviando aprobación a {insc.usuario.email} — {e}')
+    app = current_app._get_current_object()
+    _enviar_en_thread(
+        app,
+        f'[Prode] ¡Inscripción aprobada! — {insc.torneo.nombre}',
+        [insc.usuario.email],
+        html,
+    )
 
 
 def notificar_cierre_partido(partido):
     """
     Envía mail a cada jugador inscripto y aprobado del torneo
     informando el resultado y sus puntos.
-
-    Falla silenciosamente si Flask-Mail no está configurado.
+    Se ejecuta en un thread para no bloquear el worker de gunicorn.
     """
-    try:
-        from flask_mail import Mail, Message
-        mail = Mail(current_app)
-    except Exception as e:
-        logger.warning(f'Prode mail: Flask-Mail no disponible — {e}')
-        return
+    app      = current_app._get_current_object()
+    partido_id = partido.id
 
-    from flask import url_for
-    from app.models.prode import ProdeInscripcion, ProdePronostico
+    def _run():
+        with app.app_context():
+            try:
+                from flask_mail import Mail, Message
+                mail = Mail(app)
+            except Exception as e:
+                app.logger.warning(f'Prode mail: Flask-Mail no disponible — {e}')
+                return
 
-    torneo  = partido.fase.torneo
-    config  = torneo.config
-    pts_exacto  = config.resultado_exacto  if config else 3
-    pts_parcial = config.resultado_parcial if config else 1
+            from flask import url_for
+            from app.models.prode import ProdeInscripcion, ProdePronostico, ProdePartido
 
-    try:
-        url_ranking = url_for('prode_bp.ranking_torneo',
-                              torneo_id=torneo.id, _external=True)
-    except Exception:
-        url_ranking = '#'
+            partido_local = ProdePartido.query.get(partido_id)
+            if not partido_local:
+                return
 
-    inscriptos = ProdeInscripcion.query.filter_by(
-        torneo_id=torneo.id,
-        estado='aprobado'
-    ).all()
+            torneo  = partido_local.fase.torneo
+            config  = torneo.config
+            pts_exacto  = config.resultado_exacto  if config else 3
+            pts_parcial = config.resultado_parcial if config else 1
 
-    enviados = 0
-    for insc in inscriptos:
-        usuario = insc.usuario
-        if not usuario.email:
-            continue
+            try:
+                url_ranking = url_for('prode_bp.ranking_torneo',
+                                      torneo_id=torneo.id, _external=True)
+            except Exception:
+                url_ranking = '#'
 
-        pron = ProdePronostico.query.filter_by(
-            usuario_id=usuario.id,
-            partido_id=partido.id,
-        ).first()
+            inscriptos = ProdeInscripcion.query.filter_by(
+                torneo_id=torneo.id, estado='aprobado'
+            ).all()
 
-        html = render_template_string(
-            TEMPLATE_RESULTADO,
-            nombre         = usuario.nombre,
-            local          = partido.equipo_local.nombre,
-            visitante      = partido.equipo_visitante.nombre,
-            torneo         = torneo.nombre,
-            fase           = partido.fase.nombre,
-            gl             = partido.goles_local,
-            gv             = partido.goles_visitante,
-            pron_local     = pron.goles_local      if pron else None,
-            pron_visitante = pron.goles_visitante  if pron else None,
-            puntos         = pron.puntos           if pron else 0,
-            pts_exacto     = pts_exacto,
-            pts_parcial    = pts_parcial,
-            url_ranking    = url_ranking,
-        )
+            enviados = 0
+            for insc in inscriptos:
+                usuario = insc.usuario
+                if not usuario.email:
+                    continue
 
-        try:
-            msg = Message(
-                subject = f'[Prode] {partido.equipo_local.nombre} {partido.goles_local}–{partido.goles_visitante} {partido.equipo_visitante.nombre}',
-                recipients = [usuario.email],
-                html       = html,
-            )
-            mail.send(msg)
-            enviados += 1
-        except Exception as e:
-            logger.warning(f'Prode mail: error enviando a {usuario.email} — {e}')
+                pron = ProdePronostico.query.filter_by(
+                    usuario_id=usuario.id,
+                    partido_id=partido_id,
+                ).first()
 
-    logger.info(f'Prode mail: {enviados} mails enviados para partido {partido.id}')
+                html = render_template_string(
+                    TEMPLATE_RESULTADO,
+                    nombre         = usuario.nombre,
+                    local          = partido_local.equipo_local.nombre,
+                    visitante      = partido_local.equipo_visitante.nombre,
+                    torneo         = torneo.nombre,
+                    fase           = partido_local.fase.nombre,
+                    gl             = partido_local.goles_local,
+                    gv             = partido_local.goles_visitante,
+                    pron_local     = pron.goles_local      if pron else None,
+                    pron_visitante = pron.goles_visitante  if pron else None,
+                    puntos         = pron.puntos           if pron else 0,
+                    pts_exacto     = pts_exacto,
+                    pts_parcial    = pts_parcial,
+                    url_ranking    = url_ranking,
+                )
+                try:
+                    subject = (
+                        f'[Prode] {partido_local.equipo_local.nombre} '
+                        f'{partido_local.goles_local}–{partido_local.goles_visitante} '
+                        f'{partido_local.equipo_visitante.nombre}'
+                    )
+                    msg = Message(subject=subject, recipients=[usuario.email], html=html)
+                    mail.send(msg)
+                    enviados += 1
+                except Exception as e:
+                    app.logger.warning(f'Prode mail: error enviando a {usuario.email} — {e}')
+
+            app.logger.warning('Prode mail: %d mails enviados para partido %d', enviados, partido_id)
+
+    threading.Thread(target=_run, daemon=True).start()
