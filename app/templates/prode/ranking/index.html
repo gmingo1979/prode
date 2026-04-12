@@ -8,9 +8,21 @@
       {{ ranking | length }} participante{{ 's' if ranking|length != 1 }}.
     </p>
   </div>
-  <a href="{{ url_for('prode_bp.index') }}" class="btn btn-sm btn-outline-secondary">
-    <i class="bi bi-arrow-left me-1"></i>Volver
-  </a>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if ranking %}
+    <a href="{{ url_for('prode_bp.ranking_exportar_excel', torneo_id=torneo.id) }}"
+       class="btn btn-sm btn-success">
+      <i class="bi bi-file-earmark-excel me-1"></i>Excel
+    </a>
+    <a href="{{ url_for('prode_bp.ranking_exportar_pdf', torneo_id=torneo.id) }}"
+       class="btn btn-sm btn-danger">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    {% endif %}
+    <a href="{{ url_for('prode_bp.index') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Volver
+    </a>
+  </div>
 </div>
 
 {# Filtro por sector #}

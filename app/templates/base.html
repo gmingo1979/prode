@@ -65,6 +65,20 @@ Uso mínimo en una página hija:
   {# ── DataTables (paginación, filtro y orden en tablas) ────── #}
   <link rel="stylesheet" href="https://cdn.datatables.net/v/bs5/dt-2.3.7/datatables.min.css">
 
+  {# ── Colores personalizados (sobreescriben variables CSS) ─── #}
+  {% if config_app %}
+  <style>
+    :root {
+      --color-primary:        {{ config_app.color_primary }};
+      --color-primary-dark:   color-mix(in srgb, {{ config_app.color_primary }} 65%, #000);
+      --color-primary-mid:    color-mix(in srgb, {{ config_app.color_primary }} 75%, #fff);
+      --color-primary-light:  color-mix(in srgb, {{ config_app.color_primary }} 15%, transparent);
+      --color-primary-xlight: color-mix(in srgb, {{ config_app.color_primary }} 7%, transparent);
+      --color-accent:         {{ config_app.color_accent }};
+    }
+  </style>
+  {% endif %}
+
   {# ── CSS adicional por página (opcional) ─────────────────── #}
   {% block extra_css %}{% endblock %}
 </head>

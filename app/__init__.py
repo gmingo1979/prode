@@ -132,6 +132,11 @@ def create_app():
     @flask_app.context_processor
     def inject_globals():
         from app.utils.menu import obtener_menu_usuario
+        from app.models.config_app import ConfigApp
+        try:
+            config_app = ConfigApp.obtener()
+        except Exception:
+            config_app = None
         return dict(
             nombre_empresa    = flask_app.config.get('NOMBRE_EMPRESA'),
             nombre_empresa_xl = flask_app.config.get('NOMBRE_EMPRESA_XL'),
@@ -143,6 +148,7 @@ def create_app():
             is_dev            = flask_app.debug,
             menu_sidebar      = obtener_menu_usuario('sidebar'),
             menu_navbar       = obtener_menu_usuario('navbar'),
+            config_app        = config_app,
         )
 
     @flask_app.before_request
@@ -204,8 +210,9 @@ def create_app():
     from app.routes.roles       import roles_bp
     from app.routes.funciones   import funciones_bp
     from app.routes.prode       import prode_bp
-    from app.routes.sesiones    import sesiones_bp
-    from app.routes.pwa         import pwa_bp
+    from app.routes.sesiones      import sesiones_bp
+    from app.routes.pwa           import pwa_bp
+    from app.routes.config_visual import config_visual_bp
 
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(auth_google_bp)
@@ -216,6 +223,7 @@ def create_app():
     flask_app.register_blueprint(prode_bp)
     flask_app.register_blueprint(sesiones_bp)
     flask_app.register_blueprint(pwa_bp)
+    flask_app.register_blueprint(config_visual_bp)
 
     # ── Manejadores de error ─────────────────────────────────
     @flask_app.errorhandler(401)

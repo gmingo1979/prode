@@ -43,7 +43,8 @@ def obtener_ranking_torneo(torneo_id: int) -> list:
     sql = text("""
         SELECT
             u.id                                                        AS usuario_id,
-            u.nombre || ' ' || u.apellido                               AS usuario,
+            u.nombre                                                    AS nombre,
+            u.apellido                                                  AS apellido,
             COUNT(pr.id)                                                AS pronosticados,
             COALESCE(SUM(pr.puntos), 0)                                 AS puntos,
             COALESCE(SUM(CASE WHEN pr.puntos = cfg.resultado_exacto
@@ -75,6 +76,9 @@ def obtener_ranking_torneo(torneo_id: int) -> list:
         return []
 
     ranking = [dict(row) for row in rows]
+
+    for r in ranking:
+        r['usuario'] = f"{r.pop('nombre', '')} {r.pop('apellido', '')}".strip()
 
     # Reemplazar foto_path con avatar_url del modelo
     from app.models.usuario import Usuario

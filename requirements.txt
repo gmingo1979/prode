@@ -42,3 +42,5 @@ urllib3==2.6.3
 Werkzeug==3.1.8
 wrapt==2.1.2
 WTForms==3.2.1
+fpdf2==2.8.7
+openpyxl==3.1.5

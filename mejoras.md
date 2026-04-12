@@ -8,9 +8,9 @@
 
   2. Mails que faltan (tu idea, impacto inmediato)
   Ya tenés Flask-Mail y el servicio armado. Solo falta agregar:
-  - Bienvenida al registrarse
-  - Confirmación de inscripción a torneo
-  - Aceptación/rechazo de inscripción
+  - ~~Bienvenida al registrarse~~
+  - ~~Confirmación de inscripción a torneo~~
+  - ~~Aceptación/rechazo de inscripción~~
   - Recordatorio 24hs antes de partido sin pronóstico (requiere un scheduler como APScheduler o Celery)
   - Resumen semanal de ranking
 
@@ -25,9 +25,8 @@
   ---
   Media prioridad - Experiencia de usuario
 
-  5. Personalización visual por empresa (tu idea - colores, logo, fondo)
-  Con multiempresa va de la mano: cada tenant elige su paleta de colores (variables CSS), logo, banner e imagen de fondo. Sin multiempresa igual se puede hacer como configuración global
-  desde el admin.
+  ~~5. Personalización visual por empresa (tu idea - colores, logo, fondo)~~
+  ~~Con multiempresa va de la mano: cada tenant elige su paleta de colores (variables CSS), logo, banner e imagen de fondo. Sin multiempresa igual se puede hacer como configuración global desde el admin.~~
 
   6. Sección de noticias/novedades (tu idea)
   Modelo simple Novedad (título, cuerpo, fecha, imagen, activo). El admin la carga, aparece en el home o en una sección dedicada. Puede ser el lugar para avisar de cambios en partidos,
@@ -61,8 +60,8 @@
   13. Historial de puntos por partido (mejora al historial actual)
   El historial existe pero podría mostrar un gráfico de evolución de puntos acumulados a lo largo del torneo, no solo una lista.
 
-  14. Exportar ranking a PDF/Excel
-  Para torneos de empresa, poder descargar el ranking firmado es muy común.
+  ~~14. Exportar ranking a PDF/Excel~~
+  ~~Para torneos de empresa, poder descargar el ranking firmado es muy común.~~
 
   ---
   Mi orden de implementación sugerido

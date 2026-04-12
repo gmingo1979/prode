@@ -18,7 +18,7 @@
 
 from datetime import date, datetime, timezone, timedelta
 from flask import (Blueprint, flash, jsonify, redirect,
-                   render_template, request, url_for)
+                   render_template, request, send_file, url_for)
 from flask_login import current_user, login_required
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload, subqueryload
@@ -28,6 +28,7 @@ from app.models.prode import (ProdeConfigPuntaje, ProdeEquipo, ProdeFase,
                                ProdeInscripcion, ProdePartido, ProdePronostico,
                                ProdeTorneo)
 from app.utils.permisos import requiere_funcion
+from app.utils.ranking_export import ranking_a_excel, ranking_a_pdf
 from app.utils.prode_puntaje import calcular_puntos, obtener_ranking_torneo
 
 prode_bp = Blueprint('prode_bp', __name__, url_prefix='/prode')
@@ -516,6 +517,37 @@ def ranking_torneo(torneo_id):
                            usuario_logueado_id=current_user.id,
                            sector_actual=None,
                            sectores=[])
+
+
+
+@prode_bp.route('/<int:torneo_id>/ranking/exportar/excel')
+@login_required
+def ranking_exportar_excel(torneo_id):
+    torneo  = ProdeTorneo.query.get_or_404(torneo_id)
+    ranking = obtener_ranking_torneo(torneo_id)
+    buf     = ranking_a_excel(torneo, ranking)
+    nombre  = f"ranking_{torneo.nombre.replace(' ', '_')}.xlsx"
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=nombre,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
+@prode_bp.route('/<int:torneo_id>/ranking/exportar/pdf')
+@login_required
+def ranking_exportar_pdf(torneo_id):
+    torneo  = ProdeTorneo.query.get_or_404(torneo_id)
+    ranking = obtener_ranking_torneo(torneo_id)
+    buf     = ranking_a_pdf(torneo, ranking)
+    nombre  = f"ranking_{torneo.nombre.replace(' ', '_')}.pdf"
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=nombre,
+        mimetype='application/pdf',
+    )
 
 
 # =================================================================
