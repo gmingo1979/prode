@@ -1197,6 +1197,28 @@ def admin_partido_editar(id):
                            torneo=torneo, equipos=equipos, partido=partido)
 
 
+@prode_bp.route('/admin/partidos/<int:id>/eliminar', methods=['POST'])
+@login_required
+@requiere_funcion()
+def admin_partido_eliminar(id):
+    partido = ProdePartido.query.get_or_404(id)
+    torneo_id = partido.fase.torneo_id
+
+    if partido.estado == 'cerrado':
+        flash('No se puede eliminar un partido ya cerrado con resultado cargado.', 'danger')
+        return redirect(url_for('prode_bp.admin_torneo_editar', id=torneo_id))
+
+    try:
+        db.session.delete(partido)
+        db.session.commit()
+        flash('Partido eliminado correctamente.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('No se pudo eliminar el partido.', 'danger')
+
+    return redirect(url_for('prode_bp.admin_torneo_editar', id=torneo_id))
+
+
 @prode_bp.route('/admin/partidos/<int:id>/cerrar', methods=['POST'])
 @login_required
 @requiere_funcion()

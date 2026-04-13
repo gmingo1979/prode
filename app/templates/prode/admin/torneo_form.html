@@ -169,6 +169,14 @@
                 title="Cargar resultado y cerrar">
                 <i class="bi bi-flag-fill"></i>
               </button>
+              <form method="POST" action="{{ url_for('prode_bp.admin_partido_eliminar', id=partido.id) }}"
+                class="d-inline"
+                onsubmit="return confirm('¿Eliminar el partido {{ partido.equipo_local.nombre | replace("'", "\\'") }} vs {{ partido.equipo_visitante.nombre | replace("'", "\\'") }}? También se borrarán los pronósticos asociados.')">
+                <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size:0.72rem; padding:1px 7px;"
+                  title="Eliminar partido">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
               {% else %}
               <span style="font-size:0.72rem; color:#16a34a; margin-right:4px;">
                 <i class="bi bi-check-circle me-1"></i>{{ partido.goles_local }}–{{ partido.goles_visitante }}
