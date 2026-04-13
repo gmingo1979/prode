@@ -81,6 +81,40 @@
       </div>
     </div>
 
+    {# Invitaciones pendientes — solo admin #}
+    {% if es_creador and invitaciones_pendientes %}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-transparent py-2 px-3 d-flex align-items-center justify-content-between"
+           style="font-size:0.78rem; font-weight:600;">
+        <span>
+          <i class="bi bi-hourglass-split me-1" style="color:#f59e0b;"></i>
+          Invitaciones pendientes ({{ invitaciones_pendientes | length }})
+        </span>
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for inv in invitaciones_pendientes %}
+          <li class="list-group-item px-3 py-2 d-flex align-items-center gap-2"
+              style="font-size:0.8rem;">
+            <i class="bi bi-envelope text-muted" style="font-size:0.85rem; flex-shrink:0;"></i>
+            <span class="flex-grow-1 text-truncate" title="{{ inv.email }}">
+              {{ inv.email }}
+            </span>
+            <form method="POST"
+                  action="{{ url_for('grupos_bp.cancelar_invitacion', grupo_id=grupo.id, inv_id=inv.id) }}"
+                  onsubmit="return confirm('¿Cancelar la invitación a {{ inv.email }}?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1"
+                      title="Cancelar invitación">
+                <i class="bi bi-x" style="font-size:0.8rem;"></i>
+              </button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
     {# Invitar #}
     <div class="card border-0 shadow-sm mb-3">
       <div class="card-header bg-transparent py-2 px-3"
@@ -123,7 +157,7 @@
 
   </div>
 
-  {# ── Ranking del grupo ── #}
+  {# ── Contenido principal ── #}
   <div class="col-12 col-lg-8 col-xl-9">
 
     {% if torneos %}
@@ -140,6 +174,52 @@
     </div>
     {% endif %}
 
+    {# Banner de inscripción — para el usuario actual si no está inscripto en el torneo #}
+    {% if torneo_sel %}
+      {% if mi_inscripcion is none %}
+      <div class="alert d-flex align-items-start gap-3 mb-3"
+           style="background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; padding:16px 20px;">
+        <i class="bi bi-info-circle-fill" style="color:#f59e0b; font-size:1.3rem; flex-shrink:0; margin-top:2px;"></i>
+        <div>
+          <div style="font-weight:600; font-size:0.9rem; color:#92400e;">
+            No estás inscripto en {{ torneo_sel.nombre }}
+          </div>
+          <div style="font-size:0.82rem; color:#78350f; margin-top:4px;">
+            Para aparecer en el ranking del grupo tenés que inscribirte al torneo.
+            Una vez aprobada tu inscripción ya podés hacer pronósticos.
+          </div>
+          <a href="{{ url_for('prode_bp.index') }}"
+             class="btn btn-sm mt-2"
+             style="background:#f59e0b; color:#fff; border:none; font-weight:600;">
+            <i class="bi bi-pencil-square me-1"></i>Ir a torneos e inscribirme
+          </a>
+        </div>
+      </div>
+      {% elif mi_inscripcion.estado == 'pendiente' %}
+      <div class="alert d-flex align-items-start gap-3 mb-3"
+           style="background:#eff6ff; border:1px solid #93c5fd; border-radius:10px; padding:16px 20px;">
+        <i class="bi bi-clock-history" style="color:#3b82f6; font-size:1.3rem; flex-shrink:0; margin-top:2px;"></i>
+        <div>
+          <div style="font-weight:600; font-size:0.9rem; color:#1e40af;">
+            Tu inscripción a {{ torneo_sel.nombre }} está pendiente de aprobación
+          </div>
+          <div style="font-size:0.82rem; color:#1d4ed8; margin-top:4px;">
+            Cuando el administrador del torneo la apruebe vas a poder hacer pronósticos
+            y aparecer en el ranking del grupo.
+          </div>
+        </div>
+      </div>
+      {% elif mi_inscripcion.estado == 'aprobado' %}
+      <div class="d-flex justify-content-end mb-2">
+        <a href="{{ url_for('prode_bp.pronosticos', torneo_id=torneo_sel.id) }}"
+           class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-pencil-square me-1"></i>Ir a mis pronósticos
+        </a>
+      </div>
+      {% endif %}
+    {% endif %}
+
+    {# Ranking del grupo #}
     {% if torneo_sel %}
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-transparent py-3 px-3 d-flex align-items-center justify-content-between">
@@ -243,12 +323,20 @@
     {% endif %}
 
     {% else %}
+    {# Ningún miembro inscripto en ningún torneo activo #}
     <div class="card border-0 shadow-sm">
-      <div class="card-body text-center text-muted py-5">
+      <div class="card-body text-center py-5">
         <i class="bi bi-trophy" style="font-size:2.5rem; opacity:0.3;"></i>
-        <p class="mt-3 mb-0" style="font-size:0.85rem;">
-          Ningún miembro está inscripto en un torneo activo todavía.
+        <p class="mt-3 mb-1" style="font-size:0.9rem; font-weight:600;">
+          Todavía no hay torneos para este grupo
         </p>
+        <p class="text-muted mb-3" style="font-size:0.82rem;">
+          Para ver el ranking del grupo, cada jugador debe inscribirse en un torneo activo.
+        </p>
+        <a href="{{ url_for('prode_bp.torneos') }}"
+           class="btn btn-sm btn-primary-app">
+          <i class="bi bi-search me-1"></i>Ver torneos disponibles
+        </a>
       </div>
     </div>
     {% endif %}

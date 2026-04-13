@@ -157,15 +157,36 @@ def detalle(grupo_id):
 
     es_creador = (grupo.creador_id == current_user.id)
 
+    # Invitaciones pendientes (solo visibles al creador)
+    invitaciones_pendientes = []
+    if es_creador:
+        invitaciones_pendientes = (
+            ProdeGrupoInvitacion.query
+            .filter_by(grupo_id=grupo_id, estado='pendiente')
+            .order_by(ProdeGrupoInvitacion.created_at.desc())
+            .all()
+        )
+
+    # Inscripción del usuario actual en el torneo seleccionado
+    mi_inscripcion = None
+    if torneo_sel:
+        from app.models.prode import ProdeInscripcion
+        mi_inscripcion = ProdeInscripcion.query.filter_by(
+            usuario_id=current_user.id,
+            torneo_id=torneo_sel.id,
+        ).first()
+
     return render_template(
         'prode/grupos/detalle.html',
-        titulo      = grupo.nombre,
-        grupo       = grupo,
-        torneos     = torneos,
-        torneo_sel  = torneo_sel,
-        ranking     = ranking,
-        es_creador  = es_creador,
-        usuario_id  = current_user.id,
+        titulo                  = grupo.nombre,
+        grupo                   = grupo,
+        torneos                 = torneos,
+        torneo_sel              = torneo_sel,
+        ranking                 = ranking,
+        es_creador              = es_creador,
+        usuario_id              = current_user.id,
+        invitaciones_pendientes = invitaciones_pendientes,
+        mi_inscripcion          = mi_inscripcion,
     )
 
 
@@ -215,6 +236,25 @@ def invitar(grupo_id):
     enviar_invitacion(invitacion, es_nuevo_usuario=es_nuevo)
 
     flash(f'Invitación enviada a {email}.', 'success')
+    return redirect(url_for('grupos_bp.detalle', grupo_id=grupo_id))
+
+
+# ── Cancelar invitación (solo creador) ───────────────────────────────────────
+
+@grupos_bp.route('/grupos/<int:grupo_id>/invitacion/<int:inv_id>/cancelar', methods=['POST'])
+@login_required
+def cancelar_invitacion(grupo_id, inv_id):
+    grupo = ProdeGrupo.query.get_or_404(grupo_id)
+    if grupo.creador_id != current_user.id:
+        abort(403)
+
+    inv = ProdeGrupoInvitacion.query.filter_by(
+        id=inv_id, grupo_id=grupo_id, estado='pendiente'
+    ).first_or_404()
+
+    db.session.delete(inv)
+    db.session.commit()
+    flash(f'Invitación a {inv.email} cancelada.', 'success')
     return redirect(url_for('grupos_bp.detalle', grupo_id=grupo_id))
 
 
