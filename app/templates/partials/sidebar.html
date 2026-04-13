@@ -82,6 +82,14 @@ Mejoras respecto a la versión anterior:
 
   </nav>
 
+  {# ── Banner sidebar ───────────────────────────────────────── #}
+  {% from 'macros/banner.html' import render_banners with context %}
+  {% if banners_activos.get('sidebar') %}
+  <div class="sidebar-banner">
+    {{ render_banners('sidebar') }}
+  </div>
+  {% endif %}
+
   {# ── Pie del sidebar ──────────────────────────────────────── #}
   <div class="sidebar-footer">
     {{ nombre_aplicacion }} &nbsp;·&nbsp; v{{ version }}

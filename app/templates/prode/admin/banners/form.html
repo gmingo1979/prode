@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ titulo }}</h1>
+  </div>
+  <a href="{{ url_for('banners_bp.admin_banners') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Volver
+  </a>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-12 col-lg-8 col-xl-7">
+
+<form method="POST" enctype="multipart/form-data">
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-transparent py-2 px-3"
+         style="font-size:0.78rem; font-weight:600; text-transform:uppercase;
+                letter-spacing:0.05em; color:#888;">
+      Información del banner
+    </div>
+    <div class="card-body p-4">
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:0.85rem;">
+          Título <span class="text-danger">*</span>
+        </label>
+        <input type="text" name="titulo" class="form-control"
+               value="{{ banner.titulo or '' }}" required
+               placeholder="Ej: Patrocinador oficial — Temporada 2026">
+        <div class="form-text">Solo para identificarlo en el admin, no se muestra al público.</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:0.85rem;">URL de destino</label>
+        <input type="url" name="url_destino" class="form-control"
+               value="{{ banner.url_destino or '' }}"
+               placeholder="https://www.ejemplo.com">
+        <div class="form-text">Al hacer click en el banner se abrirá esta URL. Dejalo vacío si no tiene link.</div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold" style="font-size:0.85rem;">
+            Posición <span class="text-danger">*</span>
+          </label>
+          <select name="posicion" class="form-select" id="selectPosicion">
+            {% for valor, etiqueta in posiciones %}
+            <option value="{{ valor }}" {{ 'selected' if banner.posicion == valor }}>
+              {{ etiqueta }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold" style="font-size:0.85rem;">Orden</label>
+          <input type="number" name="orden" class="form-control"
+                 value="{{ banner.orden or 0 }}" min="0" max="99">
+          <div class="form-text">Menor número = se muestra primero.</div>
+        </div>
+      </div>
+
+      {# Guía de tamaños — se actualiza al cambiar la posición #}
+      <div id="guia-tamano" class="mt-3 rounded p-3"
+           style="background:#f0f7ff; border:1px solid #bfdbfe; font-size:0.82rem; display:none;">
+        <div style="font-weight:600; color:#1d4ed8; margin-bottom:6px;">
+          <i class="bi bi-rulers me-1"></i>Guía de tamaños para esta posición
+        </div>
+        <table style="width:100%; border-collapse:collapse; color:#1e40af;">
+          <tr>
+            <td style="padding:2px 8px 2px 0; color:#3b82f6; width:90px;">Ejemplo</td>
+            <td id="gt-ejemplo" style="font-weight:600;"></td>
+          </tr>
+          <tr>
+            <td style="padding:2px 8px 2px 0; color:#3b82f6;">Proporción</td>
+            <td id="gt-ratio"></td>
+          </tr>
+          <tr>
+            <td style="padding:2px 8px 2px 0; color:#3b82f6;">Peso máx.</td>
+            <td id="gt-peso"></td>
+          </tr>
+          <tr>
+            <td style="padding:2px 8px 2px 0; color:#3b82f6;">Formatos</td>
+            <td id="gt-formatos"></td>
+          </tr>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-transparent py-2 px-3"
+         style="font-size:0.78rem; font-weight:600; text-transform:uppercase;
+                letter-spacing:0.05em; color:#888;">
+      Imagen
+    </div>
+    <div class="card-body p-4">
+
+      {% if banner.imagen_src %}
+      <div class="mb-3">
+        <div style="font-size:0.78rem; color:#888; margin-bottom:6px;">Imagen actual:</div>
+        <img src="{{ banner.imagen_src }}" alt="{{ banner.titulo }}"
+             style="max-width:100%; max-height:160px; border-radius:8px;
+                    border:1px solid #e5e7eb; object-fit:contain;">
+      </div>
+      {% endif %}
+
+      <label class="form-label fw-semibold" style="font-size:0.85rem;">
+        {{ 'Reemplazar imagen' if banner.imagen_src else 'Subir imagen' }}
+      </label>
+      <input type="file" name="imagen" class="form-control"
+             accept=".jpg,.jpeg,.png,.webp,.gif"
+             id="inputImagen">
+      <div class="form-text">JPG, PNG, WEBP o GIF. Máx 5MB. Se redimensiona automáticamente a 1400px de ancho.</div>
+
+      {# Preview de la imagen seleccionada #}
+      <div id="previewWrap" class="mt-3 d-none">
+        <div style="font-size:0.78rem; color:#888; margin-bottom:6px;">Vista previa:</div>
+        <img id="previewImg" src="" alt=""
+             style="max-width:100%; max-height:160px; border-radius:8px;
+                    border:1px solid #e5e7eb; object-fit:contain;">
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-transparent py-2 px-3"
+         style="font-size:0.78rem; font-weight:600; text-transform:uppercase;
+                letter-spacing:0.05em; color:#888;">
+      Vigencia y estado
+    </div>
+    <div class="card-body p-4">
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold" style="font-size:0.85rem;">Mostrar desde</label>
+          <input type="date" name="fecha_desde" class="form-control"
+                 value="{{ banner.fecha_desde.isoformat() if banner.fecha_desde else '' }}">
+          <div class="form-text">Dejar vacío para mostrar siempre.</div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold" style="font-size:0.85rem;">Mostrar hasta</label>
+          <input type="date" name="fecha_hasta" class="form-control"
+                 value="{{ banner.fecha_hasta.isoformat() if banner.fecha_hasta else '' }}">
+          <div class="form-text">Dejar vacío para no tener fecha de fin.</div>
+        </div>
+      </div>
+
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="activo" id="chkActivo"
+               {{ 'checked' if banner.activo }}>
+        <label class="form-check-label" for="chkActivo" style="font-size:0.85rem;">
+          Banner activo
+        </label>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 justify-content-end">
+    <a href="{{ url_for('banners_bp.admin_banners') }}" class="btn btn-outline-secondary">
+      Cancelar
+    </a>
+    <button type="submit" class="btn btn-primary-app">
+      <i class="bi bi-check-lg me-1"></i>Guardar banner
+    </button>
+  </div>
+
+</form>
+</div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Preview de imagen ───────────────────────────────────────
+document.getElementById('inputImagen').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('previewImg').src = e.target.result;
+    document.getElementById('previewWrap').classList.remove('d-none');
+  };
+  reader.readAsDataURL(file);
+});
+
+// ── Guía de tamaños dinámica por posición ────────────────────
+const posicionInfo = {{ posicion_info | tojson }};
+
+function actualizarGuia(posicion) {
+  const info = posicionInfo[posicion];
+  const guia = document.getElementById('guia-tamano');
+  if (!info) { guia.style.display = 'none'; return; }
+  document.getElementById('gt-ejemplo').textContent  = info.ejemplo;
+  document.getElementById('gt-ratio').textContent    = info.ratio;
+  document.getElementById('gt-peso').textContent     = info.peso;
+  document.getElementById('gt-formatos').textContent = info.formatos;
+  guia.style.display = 'block';
+}
+
+const sel = document.getElementById('selectPosicion');
+sel.addEventListener('change', () => actualizarGuia(sel.value));
+// Mostrar guía al cargar con la posición actual
+actualizarGuia(sel.value);
+</script>
+{% endblock %}

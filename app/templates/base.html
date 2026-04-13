@@ -104,7 +104,11 @@ Uso mínimo en una página hija:
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
   {# ── Contenido principal ──────────────────────────────────── #}
+  {% from 'macros/banner.html' import render_banners with context %}
   <main class="app-main" id="appMain">
+
+    {# Banner header — se muestra solo si hay banners activos en esa posición #}
+    {{ render_banners('header') }}
 
     {# Flash messages — disponibles en toda la app #}
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -124,6 +128,9 @@ Uso mínimo en una página hija:
 
     {# Contenido de cada página hija #}
     {% block content %}{% endblock %}
+
+    {# Banner footer — dentro del área de contenido, encima del footer fijo #}
+    {{ render_banners('footer') }}
 
   </main>
 

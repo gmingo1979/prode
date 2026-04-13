@@ -12,6 +12,7 @@ from app.models.grupo        import (              # noqa: F401
     ProdeGrupoMiembro,
     ProdeGrupoInvitacion,
 )
+from app.models.banner       import Banner         # noqa: F401
 from app.models.prode        import (             # noqa: F401
     ProdeTorneo,
     ProdeFase,

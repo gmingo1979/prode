@@ -1,0 +1,74 @@
+{#
+  Macro para renderizar banners en cualquier template.
+
+  Uso básico:
+    {% from 'macros/banner.html' import render_banners with context %}
+    {{ render_banners('header') }}
+    {{ render_banners('sidebar') }}
+
+  El dict `banners_activos` viene del context processor en __init__.py.
+  Si la posición no tiene banners activos no renderiza nada.
+
+  Con un solo banner → imagen estática con link.
+  Con varios → Bootstrap carousel con rotación automática (5s).
+#}
+
+{% macro render_banners(posicion, clase_extra='') %}
+{% set lista = banners_activos.get(posicion, []) %}
+{% if lista %}
+
+<div class="banner-slot banner-slot--{{ posicion }} {{ clase_extra }}">
+
+  {% if lista | length == 1 %}
+    {# ── Banner único ── #}
+    {% set b = lista[0] %}
+    {% if b.url_destino %}
+    <a href="{{ url_for('banners_bp.banner_click', banner_id=b.id) }}"
+       target="_blank" rel="noopener sponsored"
+       class="d-block banner-link">
+      <img src="{{ b.imagen_src }}" alt="{{ b.titulo }}"
+           class="banner-img" loading="lazy">
+    </a>
+    {% else %}
+    <img src="{{ b.imagen_src }}" alt="{{ b.titulo }}"
+         class="banner-img" loading="lazy">
+    {% endif %}
+
+  {% else %}
+    {# ── Carousel con múltiples banners ── #}
+    <div id="carousel-{{ posicion }}" class="carousel slide"
+         data-bs-ride="carousel" data-bs-interval="5000">
+      <div class="carousel-inner">
+        {% for b in lista %}
+        <div class="carousel-item {{ 'active' if loop.first }}">
+          {% if b.url_destino %}
+          <a href="{{ url_for('banners_bp.banner_click', banner_id=b.id) }}"
+             target="_blank" rel="noopener sponsored"
+             class="d-block banner-link">
+            <img src="{{ b.imagen_src }}" alt="{{ b.titulo }}"
+                 class="banner-img d-block w-100" loading="lazy">
+          </a>
+          {% else %}
+          <img src="{{ b.imagen_src }}" alt="{{ b.titulo }}"
+               class="banner-img d-block w-100" loading="lazy">
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% if lista | length > 2 %}
+      <button class="carousel-control-prev" type="button"
+              data-bs-target="#carousel-{{ posicion }}" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon"></span>
+      </button>
+      <button class="carousel-control-next" type="button"
+              data-bs-target="#carousel-{{ posicion }}" data-bs-slide="next">
+        <span class="carousel-control-next-icon"></span>
+      </button>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+
+{% endif %}
+{% endmacro %}

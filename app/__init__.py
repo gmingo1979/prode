@@ -70,8 +70,9 @@ def create_app():
     flask_app.logger.setLevel(logging.WARNING)
     flask_app.logger.propagate = False   # evita que Flask duplique los logs
 
-    # ── Crear carpeta de fotos de perfil ─────────────────────
+    # ── Crear carpetas de uploads ────────────────────────────
     os.makedirs(flask_app.config['UPLOAD_PROFILE_PICS_FOLDER'], exist_ok=True)
+    os.makedirs(os.path.join(base_dir, 'static', 'uploads', 'banners'), exist_ok=True)
 
     # ── Inicializar extensiones ──────────────────────────────
     db.init_app(flask_app)
@@ -143,10 +144,28 @@ def create_app():
     def inject_globals():
         from app.utils.menu import obtener_menu_usuario
         from app.models.config_app import ConfigApp
+        from app.models.banner import Banner
+        from datetime import date
+
         try:
             config_app = ConfigApp.obtener()
         except Exception:
             config_app = None
+
+        # Banners activos agrupados por posición — disponibles en todos los templates
+        try:
+            hoy = date.today()
+            banners_qs = Banner.query.filter(
+                Banner.activo == True,
+                db.or_(Banner.fecha_desde.is_(None), Banner.fecha_desde <= hoy),
+                db.or_(Banner.fecha_hasta.is_(None), Banner.fecha_hasta >= hoy),
+            ).order_by(Banner.posicion, Banner.orden).all()
+            banners_activos = {}
+            for b in banners_qs:
+                banners_activos.setdefault(b.posicion, []).append(b)
+        except Exception:
+            banners_activos = {}
+
         return dict(
             nombre_empresa    = flask_app.config.get('NOMBRE_EMPRESA'),
             nombre_empresa_xl = flask_app.config.get('NOMBRE_EMPRESA_XL'),
@@ -159,6 +178,8 @@ def create_app():
             menu_sidebar      = obtener_menu_usuario('sidebar'),
             menu_navbar       = obtener_menu_usuario('navbar'),
             config_app        = config_app,
+            banners_activos   = banners_activos,
+            today             = hoy,
         )
 
     @flask_app.before_request
@@ -246,6 +267,7 @@ def create_app():
     from app.routes.pwa           import pwa_bp
     from app.routes.config_visual import config_visual_bp
     from app.routes.grupos        import grupos_bp
+    from app.routes.banners       import banners_bp
 
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(auth_google_bp)
@@ -258,6 +280,7 @@ def create_app():
     flask_app.register_blueprint(pwa_bp)
     flask_app.register_blueprint(config_visual_bp)
     flask_app.register_blueprint(grupos_bp)
+    flask_app.register_blueprint(banners_bp)
 
     # ── Manejadores de error ─────────────────────────────────
     @flask_app.errorhandler(401)
